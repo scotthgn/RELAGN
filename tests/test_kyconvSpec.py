@@ -16,25 +16,25 @@ import xspec
 import astropy.units as u
 
 import sys
-sys.path.append('/home/wljw75/Documents/phd/RELAGNSED/src/')
+sys.path.append('/home/wljw75/Documents/phd/KYAGNSED/src/')
 
-from relagnsed import relagnsed
+from kyagnsed import kyagnsed
 
 
 #Params for testing
-M = 21.7
-D = 1.9e-3
-log_mdot = -1.75188 
-a = 0.426594
-cos_inc = 0.87
+M = 10
+D = 1
+log_mdot = -1.5 
+a = 0.9
+cos_inc = 0.6
 kte_h =100
-kte_w = 0.613889
+kte_w = 0.6
 gamma_h = 2.68075
 gamma_w = 3.01257
-r_h = 6.03157
-r_w = 21.0540
+r_h = 10
+r_w = 50
 l_rout = -1
-fcol = -1
+fcol = 1
 hmax = 10
 rep = 0
 z = 0
@@ -44,16 +44,16 @@ fig = plt.figure(figsize=(10, 8))
 ax1 = fig.add_subplot(111)
 
 #Calculating my model components
-myagn = relagnsed(M, D, log_mdot, a, cos_inc, kte_h, kte_w, gamma_h, gamma_w,
+myagn = kyagnsed(M, D, log_mdot, a, cos_inc, kte_h, kte_w, gamma_h, gamma_w,
                   r_h, r_w, l_rout, fcol, hmax, rep, z)
-print(myagn.risco)
+
 myagn.set_cgs() #sets cgs units
 myagn.set_flux() #units of flux
 nu = myagn.nu_obs
 
 #extracting rel components
 ftot_r = myagn.totSpec_rel()
-ax1.loglog(nu, nu*ftot_r, color='k', label='reclconv*agnsed')
+ax1.loglog(nu, nu*ftot_r, color='k', label='kyconv*agnsed')
 
 try:
     fd_r = myagn.Lnu_disc_rel
@@ -98,8 +98,8 @@ except:
 
 
 ax1.legend(frameon=False)
-#ax1.set_ylim(1e-14, 1e-12)
-ax1.set_ylim(1e-10, 1e-7)
+ax1.set_ylim(1e-14, 1e-12)
+#ax1.set_ylim(1e-10, 1e-7)
 ax1.set_xlim(3e15, 1e21)
 ax1.set_xlabel(r'Frequency, $\nu$   (Hz)')
 ax1.set_ylabel(r'$\nu F_{\nu}$   (ergs cm$^{-2}$ s$^{-1}$)')

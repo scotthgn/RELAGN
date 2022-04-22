@@ -7,7 +7,7 @@ Created on Thu Mar 10 16:50:31 2022
 """
 """
 Calculate AGNSED (Kubota & Done 2018) with relativistic corrections at each 
-annulus using RELCONV (Garcia et al. 2014, Dauser et al. 2014)
+annulus using KYCONV (Dovciak, Karas & Yaqoob 2004)
 
 For the Comptonised region of the disc we use the pyNTHCOMP routine, adapted
 from the XSPEC model NTHCOMP (Zdziarski, Johnson & Magdziarz, 1996; Zycki,
@@ -19,6 +19,7 @@ from scipy.integrate import quad
 import xspec
 import warnings
 import os
+import matplotlib.pyplot as plt
 
 import astropy.constants as const
 import astropy.units as u
@@ -60,9 +61,8 @@ The relagnsed class
 """
 xspec.AllData.dummyrsp(1e-2, 1e4, 500)
 
-class relagnsed:
+class kyagnsed:
     
-    PATH_TO_RELXILL = os.getenv('RELXILL_TABLE_PATH')
     Emin = 1e-2
     Emax = 1e4
     numE = 500
@@ -207,10 +207,6 @@ class relagnsed:
         self.Lx = self.hotCorona_lumin()
         self.reprocess = reprocess
         
-        #loading relconv
-        self._load_relxill()
-        #Emin for relconv is 1e-2 keV - So this is hardwired for all XSPEC models
-        #xspec.AllData.dummyrsp(self.Emin, self.Emax, self.numE)
         
     
     
@@ -218,7 +214,7 @@ class relagnsed:
     """
     Performing checks on certain parameters. To ensure that we are within both
     physical limits (i.e -0.998 <= a <= 0.998) AND that we dont wonder off
-    acceptable values of relconv/kerrbb (i.e 3 <= inc <= 85 deg)
+    acceptable values of kyconv/kerrbb (i.e 3 <= inc <= 85 deg)
     """
     
     def _check_spin(self):
@@ -230,12 +226,12 @@ class relagnsed:
     
     
     def _check_inc(self):
-        if self.cosinc <= 0.998 and self.cosinc >= 0.09:
+        if self.cosinc <= 0.98 and self.cosinc >= 0.09:
             pass
         else:
-            raise ValueError('Inclination out of bounds - will not work with relconv or kerrbb! \n'
-                             'Require: 0.09 <= cos(inc) <= 0.998 \n'
-                             'Translates to: 3 <= inc <= 85 deg')
+            raise ValueError('Inclination out of bounds - will not work with kyconv or kerrbb! \n'
+                             'Require: 0.09 <= cos(inc) <= 0.98 \n'
+                             'Translates to: 11.5 <= inc <= 85 deg')
     
     def _check_rw(self):
         if self.r_w >= self.r_h:
@@ -543,6 +539,16 @@ class relagnsed:
     
     
     
+    def _calc_Dl(self):
+        """
+        Calculates luminosity distance to source
+        """
+        
+        self.Dl = self.D * (1+self.z) #In Mpc
+        self.dl = self.d * (1+self.z) #In cm
+    
+    
+    
     
     """
     Creating the radial bins to use when calculating each model component
@@ -590,26 +596,6 @@ class relagnsed:
         
     
     
-    """
-    Loading local xspec models
-    In this case only relxill
-    """
-    def _load_relxill(self):
-        xspec.AllModels.lmod('relxill', dirPath=self.PATH_TO_RELXILL)
-    
-    
-    """
-    Luminosity distance
-    """
-    def _calc_Dl(self):
-        """
-        Calculates luminosity distance to source
-        """
-        
-        self.Dl = self.D * (1+self.z) #In Mpc
-        self.dl = self.d * (1+self.z) #In cm
-    
-    
         
     
     
@@ -652,12 +638,18 @@ class relagnsed:
         B = do_black_body(Tann, nu_ext)
         
         #Annulus luminosity - normalised as black body
-        norm = sigma_sb * (Tann/fcol_r)**4 * 2*np.pi*r*dr * 2 * self.Rg**2
+        #NOTE! kyconv integrates over the annulus within the code, 
+        #hence why we are NOT multiplying with 4pi r dr - as this would 
+        #effectively overestimate the actual normalisation post convolution.
+        #The final result is still the same as this - it's just done somewhere else...
+        #kyconv also deal with the inclination - so no cos(inc) correction factor needs to be applied
+        norm = sigma_sb * (Tann/fcol_r)**4 * self.Rg**2
+
         radiance = np.trapz(B, nu_ext)
         if radiance == 0:
             Lnu_ann = np.zeros(len(nu_ext))
         else:
-            Lnu_ann = norm * (B/radiance) * self.cosinc/0.5
+            Lnu_ann = norm * (B/radiance)
         
         #Re-casting onto original grid in order to be consistent with relconv
         #i.e, just slicing away entries below Emin/nu_grid_min
@@ -696,12 +688,12 @@ class relagnsed:
         ph_nth = (ph_nth * u.W/u.keV).to(u.W/u.Hz, 
                                             equivalencies=u.spectral()).value
         
-        norm = sigma_sb * (Tann**4) * 2*np.pi*r*dr * 2 * self.Rg**2
+        norm = sigma_sb * (Tann**4) * self.Rg**2
         radiance = np.trapz(ph_nth, self.nu_grid)
         if radiance == 0:
             Lnu_ann = np.zeros(len(self.nu_grid))
         else:
-            Lnu_ann = norm * (ph_nth/radiance) * self.cosinc/0.5
+            Lnu_ann = norm * (ph_nth/radiance)# * self.cosinc/0.5
         
         return Lnu_ann
     
@@ -717,35 +709,6 @@ class relagnsed:
     Including methods for both with and without relconv
     """
     
-    def _fudge_factor(self):
-        """
-        Calculated the fudge-factor required for correct overall normalisation
-        of spectrum
-        
-        (This is horrid - but should give correct answer)
-        
-        """
-        
-        #Calculating kerrbb model
-        Mdot_cgs = self.mdot * self.Mdot_edd * 1e3
-        D_kpc = (self.D * u.Mpc).to(u.kpc).value 
-        kerr_pars = (0, self.a, np.rad2deg(self.inc), self.M, 
-                     Mdot_cgs/1e18, D_kpc, 1, self.reprocess, 0)
-        xspec.Model('kerrbb', setPars=kerr_pars)
-        
-        xspec.Plot('model')
-        es_kerr = np.array(xspec.Plot.x())
-        ph_kerr = np.array(xspec.Plot.model())
-        
-        fs_kerr = ph_kerr * es_kerr #keV Photons/s/cm^2/keV
-        fs_kerr = (fs_kerr * u.keV/u.s/u.keV).to(u.W/u.Hz, equivalencies=u.spectral()).value
-        
-        nu_kerr = (es_kerr * u.keV).to(u.Hz, equivalencies=u.spectral()).value
-        
-        self.Ftot_kerr = np.trapz(fs_kerr, nu_kerr) #Units W/cm^2
-        return self.Ftot_kerr 
-        
-    
     
     def do_relDiscSpec(self):
         """
@@ -756,23 +719,8 @@ class relagnsed:
         for i in range(len(self.logr_ad_bins) - 1):
             dr_bin = 10**self.logr_ad_bins[i+1] - 10**self.logr_ad_bins[i] #width in lin space
             rmid = 10**(self.logr_ad_bins[i] + self.dlog_r/2) #geometric center of bin
-            
             Lnu_ann = self.disc_annuli(rmid, dr_bin)
-        
-            if (10**self.logr_ad_bins[i])/self.risco >= 100:
-                r_in = -100
-            elif (10**self.logr_ad_bins[i])/self.risco <= 1:
-                r_in = -1
-            else:
-                r_in = -1 * (10**self.logr_ad_bins[i])/self.risco
-            
-            
-            if 10**self.logr_ad_bins[i+1] >= 1000:
-                r_out = 1000
-                r_br = 1000
-            else:
-                r_out = 10**self.logr_ad_bins[i+1]
-                r_br = rmid
+
                 
                 #Defining XSPEC model in order to convolve with relconv
             def disc_ann(es, params, flx):
@@ -781,13 +729,15 @@ class relagnsed:
                 
                 dEs = Ers - Els
                 Emids = Els + dEs/2
-    
-                fluxs = (Lnu_ann * u.W/u.Hz).to(u.keV/u.s/u.keV,
+                
+                #Multiply by 4 because relconv only does pi r dr
+                #We want 4 pi r dr
+                fluxs = (Lnu_ann*4 * u.W/u.Hz).to(u.keV/u.s/u.keV,
                                                 equivalencies=u.spectral()).value
                 
             
                 fluxs = fluxs/(4*np.pi * self.dl**2)
-                
+    
                 phs = fluxs/Emids
                 for j in range(len(es) - 1):
                     flx[j] = dEs[j]*phs[j]
@@ -796,24 +746,48 @@ class relagnsed:
             parinfo_ad = ('pn "" 1 0.1 0 0 2 2',) #just a dummy parameter to make xspec happy
             xspec.AllModels.addPyMod(disc_ann, parinfo_ad, 'add')
             
-            #Convolving annulus with relconv
-            relparams = (3., 3., r_br, self.a, np.rad2deg(self.inc), r_in,
-                         r_out, 0.)
+            #Convolving annulus with kyconv
+            #kyconv params are:
+                #a, spin
+                #inc - deg
+                #r_in - Rg
+                #ms - set to 0 for integration to start at r_in
+                #r_out - Rg
+                #alph - Emissivity power law - set to 0 as this already hardwired in own code
+                #beta - Same as alpha
+                #rb - break radius for emissivity - dummy parameter in this scenario
+                #z - redshift, assume 0 for now
+                #ntable - set to 0 for isotropic emission
+                #nE - Energy resolution - set to same as rest of model
+                #norm - set to -1 for NO renormalisation - maintain physical units
+            if self.logr_ad_bins[i] <= 3 and self.logr_ad_bins[i+1] <= 3:
+                r_in = 10**self.logr_ad_bins[i]
+                r_out = 10**self.logr_ad_bins[i+1]
+                r_br = rmid
+                
+                kyparams = (self.a, np.rad2deg(self.inc), r_in, 0, r_out, 0, 0,
+                         r_br, 0, 0, self.numE, -1)
+                
+                xspec.Model('kyconv*disc_ann', setPars=kyparams)
+                #xspec.Model('disc_ann')
+                xspec.Plot.device = '/null'
+                
+                xspec.Plot('model')
+                Es = np.array(xspec.Plot.x())
+                phs_r = np.array(xspec.Plot.model())
+                
+                L_kev = phs_r * Es * 4 * np.pi * self.dl**2
+                Lnu_r = (L_kev * u.keV/u.s/u.keV).to(u.W/u.Hz, equivalencies=u.spectral()).value
+                
+                xspec.AllModels.clear()
+                
+            else:
+                #If out of bounds for tables do non-relativistic
+                #This is fine - as beyon 1000Rg Gr effects tiny!
+                #Since no kyconv - we now apply the normalisation here instead
+                Lnu_r = Lnu_ann * 2*np.pi * 2 * rmid * dr_bin   * self.cosinc/0.5
+            
 
-            xspec.Model('relconv*disc_ann', setPars=relparams)
-            xspec.Plot.device = '/null'
-            
-            xspec.Plot('model')
-            Es = np.array(xspec.Plot.x())
-            phs_r = np.array(xspec.Plot.model())
-            
-            
-            L_kev = phs_r * Es * 4 * np.pi * self.dl**2
-            Lnu_r = (L_kev * u.keV/u.s/u.keV).to(u.W/u.Hz, equivalencies=u.spectral()).value
-            
-            xspec.AllModels.clear()
-            
-            
             if i == 0:
                 Lnu_all = Lnu_r
             else:
@@ -824,7 +798,7 @@ class relagnsed:
         else:
             Lnu_tot = Lnu_all
         
-        self.Lnu_disc_rel = Lnu_tot
+        self.Lnu_disc_rel = Lnu_tot  #* self.cosinc/0.5
         return Lnu_tot
     
     
@@ -838,7 +812,7 @@ class relagnsed:
             dr_bin = 10**self.logr_ad_bins[i+1] - 10**self.logr_ad_bins[i]
             rmid = 10**(self.logr_ad_bins[i] + self.dlog_r/2)
             
-            Lnu_r = self.disc_annuli(rmid, dr_bin)
+            Lnu_r = self.disc_annuli(rmid, dr_bin) * 2*np.pi * 2 * rmid * dr_bin
             
             if i == 0:
                 Lnu_all = Lnu_r
@@ -850,8 +824,8 @@ class relagnsed:
         else:
             Lnu_tot = Lnu_all
         
-        self.Lnu_disc_norel = Lnu_tot
-        return Lnu_tot
+        self.Lnu_disc_norel = Lnu_tot  * self.cosinc/0.5
+        return self.Lnu_disc_norel
             
     
     
@@ -867,21 +841,6 @@ class relagnsed:
             
             Lnu_ann = self.warmComp_annuli(rmid, dr_bin)
             
-            if (10**self.logr_wc_bins[i])/self.risco >= 100:
-                r_in = -100
-            elif (10**self.logr_wc_bins[i])/self.risco <= 1:
-                r_in = -1
-            else:
-                r_in = -1 * (10**self.logr_wc_bins[i])/self.risco
-            
-            
-            if 10**self.logr_wc_bins[i+1] >= 1000:
-                r_out = 1000
-                r_br = 1000
-            else:
-                r_out = 10**self.logr_wc_bins[i+1]
-                r_br = rmid
-            
             #creating pyxspec model so can do convolution with relconv
             def warm_ann(es, params, flx):
                 Els = np.array(es[:-1])
@@ -890,7 +849,7 @@ class relagnsed:
                 dEs = Ers - Els
                 Emids = Els + dEs/2
                 
-                fluxs = (Lnu_ann * u.W/u.Hz).to(u.keV/u.s/u.keV,
+                fluxs = (Lnu_ann*4 * u.W/u.Hz).to(u.keV/u.s/u.keV,
                                                 equivalencies=u.spectral()).value
                 
             
@@ -903,22 +862,34 @@ class relagnsed:
             parinfo_ad = ('pn "" 1 0.1 0 0 2 2',) #just a dummy parameter to make xspec happy
             xspec.AllModels.addPyMod(warm_ann, parinfo_ad, 'add')
             
-            #Convolving annulus with relconv
-            relparams = (3., 3., r_br, self.a, np.rad2deg(self.inc), r_in,
-                         r_out, 0.)
+            #Convolving annulus with kyconv
+            #See do_relDiscSpec for explanation of kyparams
+            if self.logr_wc_bins[i] <= 3 and self.logr_wc_bins[i+1] <= 3:
+                r_in = 10**self.logr_wc_bins[i]
+                r_out = 10**self.logr_wc_bins[i+1]
+                r_br = rmid
+                kyparams = (self.a, np.rad2deg(self.inc), r_in, 0, r_out, 0, 0,
+                            r_br, 0, 0, self.numE, -1)
 
-            xspec.Model('relconv*warm_ann', setPars=relparams)
-            xspec.Plot.device = '/null'
+                xspec.Model('kyconv*warm_ann', setPars=kyparams)
+                xspec.Plot.device = '/null'
+                
+                xspec.Plot('model')
+                Es = np.array(xspec.Plot.x())
+                phs_r = np.array(xspec.Plot.model())
+                
+                
+                L_kev = phs_r * Es * 4 * np.pi * self.dl**2
+                Lnu_r = (L_kev * u.keV/u.s/u.keV).to(u.W/u.Hz, equivalencies=u.spectral()).value
+                
+                xspec.AllModels.clear()
             
-            xspec.Plot('model')
-            Es = np.array(xspec.Plot.x())
-            phs_r = np.array(xspec.Plot.model())
-            
-            
-            L_kev = phs_r * Es * 4 * np.pi * self.dl**2
-            Lnu_r = (L_kev * u.keV/u.s/u.keV).to(u.W/u.Hz, equivalencies=u.spectral()).value
-            
-            xspec.AllModels.clear()
+            else:
+                #If out of bounds for tables do non-relativistic
+                #This is fine - as beyon 1000Rg Gr effects tiny!
+                #Since no kyconv - we now apply the normalisation here instead
+                Lnu_r = Lnu_ann * 2*np.pi * 2 * rmid * dr_bin   * self.cosinc/0.5
+                
 
             if i == 0:
                 Lnu_all = Lnu_r
@@ -944,7 +915,7 @@ class relagnsed:
             dr_bin = 10**self.logr_wc_bins[i+1] - 10**self.logr_wc_bins[i]
             rmid = 10**(self.logr_wc_bins[i] + self.dlog_r/2)
             
-            Lnu_r = self.warmComp_annuli(rmid, dr_bin)
+            Lnu_r = self.warmComp_annuli(rmid, dr_bin) * 4*np.pi*rmid*dr_bin
             
             if i == 0:
                 Lnu_all = Lnu_r
@@ -956,8 +927,8 @@ class relagnsed:
         else:
             Lnu_tot = Lnu_all
             
-        self.Lnu_warm_norel = Lnu_tot
-        return Lnu_tot
+        self.Lnu_warm_norel = Lnu_tot * self.cosinc/0.5
+        return self.Lnu_warm_norel
         
         
     
@@ -1059,13 +1030,15 @@ class relagnsed:
     def hotComp_annuli(self, r, dr):
         """
         Calculates spectrum from radial slice of hot comp region
-        Neccessary in order to apply relconv correctly!
+        Neccessary in order to apply kyconv correctly!
 
         """
         kT_ann = self.seed_tempHot()
         T4ann = self.calc_Tnt(r)
-        Ldiss_ann = 2 * sigma_sb * T4ann * 2 * np.pi * r * dr * self.Rg**2
-        Lseed_ann = self.Lseed_hotCorona()
+        Ldiss_ann = sigma_sb * T4ann * self.Rg**2
+        #For Lseed need to /4pi r dr so that normalise correctly in kyconv
+        #Also need to /N_bins - assuming the corona has no radial dependence in its emissivity
+        Lseed_ann = self.Lseed_hotCorona()/(4*np.pi*r*dr * (len(self.logr_hc_bins) - 1))
         Ltot_ann = Ldiss_ann + Lseed_ann
         
         if kT_ann < self.kTe_h:
@@ -1092,21 +1065,6 @@ class relagnsed:
             
             Lnu_ann = self.hotComp_annuli(rmid, dr_bin)
             
-            if (10**self.logr_hc_bins[i])/self.risco >= 100:
-                r_in = -100
-            elif (10**self.logr_hc_bins[i])/self.risco <= 1:
-                r_in = -1
-            else:
-                r_in = -1 * (10**self.logr_hc_bins[i])/self.risco
-            
-            
-            if 10**self.logr_hc_bins[i+1] >= 1000:
-                r_out = 1000
-                r_br = 1000
-            else:
-                r_out = 10**self.logr_hc_bins[i+1]
-                r_br = rmid
-            
             #creating pyxspec model so can do convolution with relconv
             def hot_ann(es, params, flx):
                 Els = np.array(es[:-1])
@@ -1115,7 +1073,7 @@ class relagnsed:
                 dEs = Ers - Els
                 Emids = Els + dEs/2
                 
-                fluxs = (Lnu_ann * u.W/u.Hz).to(u.keV/u.s/u.keV,
+                fluxs = (Lnu_ann*4 * u.W/u.Hz).to(u.keV/u.s/u.keV,
                                                 equivalencies=u.spectral()).value
                 
             
@@ -1129,22 +1087,33 @@ class relagnsed:
             parinfo_ad = ('pn "" 1 0.1 0 0 2 2',) #just a dummy parameter to make xspec happy
             xspec.AllModels.addPyMod(hot_ann, parinfo_ad, 'add')
             
-            #Convolving annulus with relconv
-            relparams = (3., 3., r_br, self.a, np.rad2deg(self.inc), r_in,
-                         r_out, 0.)
-
-            xspec.Model('relconv*hot_ann', setPars=relparams)
-            xspec.Plot.device = '/null'
+            if self.logr_hc_bins[i] <= 3 and self.logr_hc_bins[i+1] <= 3:
+                r_in = 10**self.logr_hc_bins[i]
+                r_out = 10**self.logr_hc_bins[i+1]
+                r_br = rmid
+                
+                #Convolving annulus with kyconv
+                kyparams = (self.a, np.rad2deg(self.inc), r_in, 0, r_out, 0, 0,
+                            r_br, 0, 0, self.numE, -1)
+                
+                xspec.Model('kyconv*hot_ann', setPars=kyparams)
+                xspec.Plot.device = '/null'
+                
+                xspec.Plot('model')
+                Es = np.array(xspec.Plot.x())
+                phs_r = np.array(xspec.Plot.model())
+                
+                
+                L_kev = phs_r * Es * 4 * np.pi * self.dl**2
+                Lnu_r = (L_kev * u.keV/u.s/u.keV).to(u.W/u.Hz, equivalencies=u.spectral()).value
+                
+                xspec.AllModels.clear()
             
-            xspec.Plot('model')
-            Es = np.array(xspec.Plot.x())
-            phs_r = np.array(xspec.Plot.model())
-
-            
-            L_kev = phs_r * Es * 4 * np.pi * self.dl**2
-            Lnu_r = (L_kev * u.keV/u.s/u.keV).to(u.W/u.Hz, equivalencies=u.spectral()).value
-
-            xspec.AllModels.clear()
+            else:
+                #If out of bounds for tables do non-relativistic
+                #This is fine - as beyon 1000Rg Gr effects tiny!
+                #Since no kyconv - we now apply the normalisation here instead
+                Lnu_r = Lnu_ann * 2*np.pi * 2 * rmid * dr_bin   * self.cosinc/0.5
 
             if i == 0:
                 Lnu_all = Lnu_r
@@ -1220,36 +1189,7 @@ class relagnsed:
             Lh = np.zeros(len(self.nu_grid))
         
         Lnu_tot_rel = Ld + Lw + Lh
-        #Finding fraction of total from each component - s.t we can normalise these correctly
-        d_frac = np.trapz(Ld, self.nu_grid)/np.trapz(Lnu_tot_rel, self.nu_grid)
-        w_frac = np.trapz(Lw, self.nu_grid)/np.trapz(Lnu_tot_rel, self.nu_grid)
-        h_frac = np.trapz(Lh, self.nu_grid)/np.trapz(Lnu_tot_rel, self.nu_grid)
-        
-        #Re-normalising w.r.t kerrbb        
-        Fac = self._fudge_factor() #actual flux in W/cm^2
-        Lac = Fac * 4 * np.pi * self.dl**2
-        
-        normc_tot = Lac/np.trapz(Lnu_tot_rel, self.nu_grid)
-        Lnu_tot_rel = normc_tot * Lnu_tot_rel
-        
-        if d_frac !=0:
-            norm_d = (Lac * d_frac)/np.trapz(Ld, self.nu_grid)
-        else:
-            norm_d = 0
-        
-        if w_frac != 0:
-            norm_w = (Lac * w_frac)/(np.trapz(Lw, self.nu_grid))
-        else:
-            norm_w = 0
-        
-        if h_frac !=0:
-            norm_h = (Lac * h_frac)/(np.trapz(Lh, self.nu_grid))
-        else:
-            norm_h = 0
-        
-        Ld = Ld * norm_d
-        Lw = Lw * norm_w
-        Lh = Lh * norm_h
+ 
         
         #Handling unit conversions if necessary
         if self.as_cgs == True:

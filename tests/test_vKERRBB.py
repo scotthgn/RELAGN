@@ -17,17 +17,17 @@ import xspec
 import astropy.units as u
 
 import sys
-sys.path.append('/home/wljw75/Documents/phd/RELAGNSED/src/')
+sys.path.append('/home/wljw75/Documents/phd/KYAGNSED/src/')
 
-from relagnsed import relagnsed
+from kyagnsed import kyagnsed
 
 
 #Params for testing
 M = 10
 D = 1
 log_mdot = -1
-a = 0
-cos_inc = 0.5
+a = 0.998
+cos_inc = 0.6
 kte_h = 100
 kte_w = 1
 gamma_h = 1.8
@@ -41,7 +41,7 @@ rep = 0
 z = 0
 
 #Calculating my model components
-myagn = relagnsed(M, D, log_mdot, a, cos_inc, kte_h, kte_w, gamma_h, gamma_w,
+myagn = kyagnsed(M, D, log_mdot, a, cos_inc, kte_h, kte_w, gamma_h, gamma_w,
                   r_h, r_w, l_rout, fcol, hmax, rep, z)
 
 myagn.set_cgs()
@@ -67,18 +67,23 @@ kph = np.array(xspec.Plot.model())
 xspec.AllModels.clear()
     
 fs_kerr = kph * kes #keV Photons/s/cm^2/keV
-fs_kerr = (fs_kerr * u.keV/u.s/u.keV).to(u.erg/u.s/u.Hz, equivalencies=u.spectral())
-nu_kerr = (kes * u.keV).to(u.Hz, equivalencies=u.spectral())
+fs_kerr = (fs_kerr * u.keV/u.s/u.keV).to(u.erg/u.s/u.Hz, equivalencies=u.spectral()).value
+nu_kerr = (kes * u.keV).to(u.Hz, equivalencies=u.spectral()).value
 
+#cn = max(fs_kerr)/max(fs)
+#fs = fs * cn
+
+#print(max(fs_kerr), max(fs), max(fs_n))
+#print(cn)
 
 #Plotting
 fig = plt.figure(figsize=(10, 8))
 ax1 = fig.add_subplot(111)
 
-ax1.loglog(nus, nus*fs, color='red', label='relconv*agnsed_disc')
+ax1.loglog(nus, nus*fs, color='red', label='kyconv*agnsed_disc')
 ax1.loglog(nu_kerr, nu_kerr*fs_kerr, color='k', ls='-.', label='kerrbb')
 
-ax1.loglog(nus, nus*fs_n, color='blue', label='agnsed_disc')
+ax1.loglog(nus, nus*fs_n, color='blue', label='agnsed_disc', ls='dotted')
 
 ax1.legend(frameon=False)
 
