@@ -59,11 +59,10 @@ def do_black_body(T, nu):
 """
 The relagnsed class
 """
-xspec.AllData.dummyrsp(1e-2, 1e4, 500)
 
 class kyagnsed:
     
-    Emin = 1e-2
+    Emin = 1e-4
     Emax = 1e4
     numE = 500
     mu = 0.55 #mean particle mass - fixed at solar abundances
@@ -123,7 +122,7 @@ class kyagnsed:
             Outer radius of warm Compton region - units : Rg
         log_rout : float
             log of outer disc radius - units : Rg
-            WARNING! Max value is r_out = 1e3 - set by relconv
+            WARNING! Max value is r_out = 1e3 - set by kyconv
         fcol : float
             Colour temperature correction as described in Done et al. (2012)
             If -ve then follows equation 1 and 2 in Done et al. (2012).
@@ -207,6 +206,7 @@ class kyagnsed:
         self.Lx = self.hotCorona_lumin()
         self.reprocess = reprocess
         
+        xspec.AllData.dummyrsp(self.Emin, self.Emax, self.numE)
         
     
     
@@ -346,14 +346,7 @@ class kyagnsed:
             New energy grid - units : keV.
 
         """
-        self.Egrid = ear 
-        if min(ear) < 1e-2:
-            print('WARNING! Min energy < 1e-2 keV \n'
-                  'This is below relxill table values. \n'
-                  'All relativistic results will be unreliable! \n'
-                  'Recommend changing Emin to be within this limit')
-        
-        
+        self.Egrid = ear         
         self.nu_grid = (self.Egrid * u.keV).to(u.Hz,
                                 equivalencies=u.spectral()).value
         self.nu_obs = self.nu_grid/(1 + self.z) #Observers frame
@@ -563,14 +556,14 @@ class kyagnsed:
 
         Parameters
         ----------
-        r_in : float
+        logr_in : float
             Inner radius of model section - units : Rg.
-        r_out : float
+        logr_out : float
             Outer radius of model section - units : Rg.
 
         Returns
         -------
-        r_bins : 1D-array
+        logr_bins : 1D-array
             Radial bin edges for section - units : Rg.
 
         """
@@ -634,8 +627,15 @@ class kyagnsed:
         Tann *= fcol_r
 
         #Extend nu/energy grid to avoid inaccuracies at large radii
-        nu_ext = np.insert(self.nu_grid, 0, np.geomspace(1e13, 1e15, 50))
-        B = do_black_body(Tann, nu_ext)
+        #Only do this if internal Emin > 1e-4 keV
+        if self.Emin < 1e-4:
+            nu_ext = np.insert(self.nu_grid, 0, np.geomspace(1e12, min(self.nu_grid)-100, 50))
+            nu_use = nu_ext
+        
+        else:
+            nu_use = self.nu_grid
+        
+        B = do_black_body(Tann, nu_use)
         
         #Annulus luminosity - normalised as black body
         #NOTE! kyconv integrates over the annulus within the code, 
@@ -645,15 +645,17 @@ class kyagnsed:
         #kyconv also deal with the inclination - so no cos(inc) correction factor needs to be applied
         norm = sigma_sb * (Tann/fcol_r)**4 * self.Rg**2
 
-        radiance = np.trapz(B, nu_ext)
+        radiance = np.trapz(B, nu_use)
         if radiance == 0:
-            Lnu_ann = np.zeros(len(nu_ext))
+            Lnu_ann = np.zeros(len(nu_use))
         else:
             Lnu_ann = norm * (B/radiance)
         
-        #Re-casting onto original grid in order to be consistent with relconv
+        #Re-casting onto original grid in order to be consistent with kyconv
         #i.e, just slicing away entries below Emin/nu_grid_min
-        Lnu_ann = Lnu_ann[50:]
+        if self.Emin < 1e-4:
+            Lnu_ann = Lnu_ann[50:]
+            
         return Lnu_ann
         
     
@@ -706,7 +708,7 @@ class kyagnsed:
     """
     Section for calculating total spectrum for each disc component
     So spectrum for disc component and warm compton component
-    Including methods for both with and without relconv
+    Including methods for both with and without kyconv
     """
     
     
@@ -722,7 +724,7 @@ class kyagnsed:
             Lnu_ann = self.disc_annuli(rmid, dr_bin)
 
                 
-                #Defining XSPEC model in order to convolve with relconv
+                #Defining XSPEC model in order to convolve with kyconv
             def disc_ann(es, params, flx):
                 Els = np.array(es[:-1])
                 Ers = np.array(es[1:])
@@ -730,7 +732,7 @@ class kyagnsed:
                 dEs = Ers - Els
                 Emids = Els + dEs/2
                 
-                #Multiply by 4 because relconv only does pi r dr
+                #Multiply by 4 because kyconv only does pi r dr
                 #We want 4 pi r dr
                 fluxs = (Lnu_ann*4 * u.W/u.Hz).to(u.keV/u.s/u.keV,
                                                 equivalencies=u.spectral()).value
@@ -841,7 +843,7 @@ class kyagnsed:
             
             Lnu_ann = self.warmComp_annuli(rmid, dr_bin)
             
-            #creating pyxspec model so can do convolution with relconv
+            #creating pyxspec model so can do convolution with kyconv
             def warm_ann(es, params, flx):
                 Els = np.array(es[:-1])
                 Ers = np.array(es[1:])
@@ -1065,7 +1067,7 @@ class kyagnsed:
             
             Lnu_ann = self.hotComp_annuli(rmid, dr_bin)
             
-            #creating pyxspec model so can do convolution with relconv
+            #creating pyxspec model so can do convolution with kyconv
             def hot_ann(es, params, flx):
                 Els = np.array(es[:-1])
                 Ers = np.array(es[1:])

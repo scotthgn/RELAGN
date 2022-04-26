@@ -23,17 +23,17 @@ from relagnsed import relagnsed
 
 
 #Params for testing
-M = 21.7
-D = 1.9e-3
-log_mdot = -1.75188 
-a = 0.426594
-cos_inc = 0.87
+M = 10
+D = 1
+log_mdot = -1.5
+a = 0
+cos_inc = 0.5
 kte_h =100
-kte_w = 0.613889
-gamma_h = 2.68075
-gamma_w = 3.01257
-r_h = 6.03157
-r_w = 21.0540
+kte_w = 1
+gamma_h = 1.7
+gamma_w = 2.7
+r_h = 10
+r_w = 50
 l_rout = -1
 fcol = 1
 hmax = 10
@@ -87,8 +87,8 @@ ax1.loglog(nu_agn, nu_agn*fs_agn, color='gray', ls='-.', label='XSPEC (agnsed)')
 
 ax1.legend(frameon=False)
 
-#ax1.set_ylim(1e-14, 1e-12)
-ax1.set_ylim(1e-10, 1e-7)
+ax1.set_ylim(1e-15, 5e-13)
+#ax1.set_ylim(1e-10, 1e-7)
 ax1.set_xlim(3e15, 1e21)
 
 ax1.set_xlabel(r'Frequency, $\nu$   (Hz)')

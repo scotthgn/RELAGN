@@ -22,15 +22,15 @@ from kyagnsed import kyagnsed
 
 
 #Params for testing
-M = 10
+M = 2e8
 D = 1
 log_mdot = -1.5 
 a = 0.9
 cos_inc = 0.6
 kte_h =100
 kte_w = 0.6
-gamma_h = 2.68075
-gamma_w = 3.01257
+gamma_h = 1.7
+gamma_w = 2.7
 r_h = 10
 r_w = 50
 l_rout = -1
@@ -98,9 +98,9 @@ except:
 
 
 ax1.legend(frameon=False)
-ax1.set_ylim(1e-14, 1e-12)
+ax1.set_ylim(1e-8, 1e-5)
 #ax1.set_ylim(1e-10, 1e-7)
-ax1.set_xlim(3e15, 1e21)
+ax1.set_xlim(3e13, 1e21)
 ax1.set_xlabel(r'Frequency, $\nu$   (Hz)')
 ax1.set_ylabel(r'$\nu F_{\nu}$   (ergs cm$^{-2}$ s$^{-1}$)')
 
