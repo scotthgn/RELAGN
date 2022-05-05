@@ -49,7 +49,8 @@ parinfo_ragn = ('M Msol 10 1 1 100 100 -1',
                 'logrout self_g -1 -1 -1 7 7 -1',
                 'fcol "" 1 1 1 5 5 0.01',
                 'hmax Rg 10 6 6 10 10 -1',
-                '$reprocess 0')
+                '$reprocess 0',
+                'z "" 0 0 0 1 1 -1')
 
  
 xspec.AllModels.addPyMod(kyagn, parinfo_ragn, 'add')

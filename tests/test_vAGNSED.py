@@ -37,7 +37,7 @@ r_w = 50
 l_rout = -1
 fcol = 1
 hmax = 10
-rep = 0
+rep = 1
 z = 0
 
 

@@ -35,7 +35,7 @@ log_rout = params[11]
 fcol = params[12]
 h_max = params[13]
 reprocess = params[14]
-z = 0 #fixing redshift at 0 for now - change later
+z = params[15] #fixing redshift at 0 for now - change later
 
 ragn = kyagnsed(M, dist, log_mdot, a, cos_inc, abs(kTe_hot), abs(kTe_warm), 
                  gamma_hot, abs(gamma_warm), r_hot, r_warm, log_rout, fcol, h_max, reprocess, z)
@@ -64,7 +64,7 @@ ragn.new_ear(np.geomspace(new_emin, new_emax, 1000)) #Ensuring sufficient energy
 ragn.set_counts()
 ragn.set_flux() #getting output as photons/s/cm^2/keV
 
-Emod = ragn.Egrid
+Emod = ragn.E_obs
 
 flxs_all = ragn.totSpec_rel() #total spectrum
 
