@@ -45,7 +45,7 @@ k_B = const.k_B.value #Boltzmann const, J K^-1
 
 
 """
-Black-Body profile
+Relevant funcitons
 """
 
 def do_black_body(T, nu):
@@ -56,6 +56,69 @@ def do_black_body(T, nu):
     return np.pi * Bnu
 
 
+
+def interp_spec(Ei, Emod, flxs):
+    """
+    Linearly interpolates spectra between energy grids
+    Needed for tunring into xspec model...
+
+    Parameters
+    ----------
+    Ei : float
+        Point on new energy grid.
+    Emod : 1D-array
+        Old energy grid
+    flxs : 1D-array
+        Model spectrum
+
+    Returns
+    -------
+    fi : float
+        Flux at new grid point.
+
+    """
+    idx_1 = np.abs(Ei - Emod).argmin()
+    
+    
+    if Ei - Emod[idx_1] > 0:
+        if Emod[idx_1] != Emod[-1]: #ensuring we dont fall off array
+            E1 = Emod[idx_1]
+            E2 = Emod[idx_1 + 1]
+            f1 = flxs[idx_1]
+            f2 = flxs[idx_1 + 1]
+        
+        else:
+            E1 = Emod[idx_1 - 1]
+            E2 = Emod[idx_1]
+            f1 = flxs[idx_1 -1]
+            f2 = flxs[idx_1]
+        
+        df_dE = (f2 - f1)/(E2 - E1)
+        fi = df_dE * (Ei - E1) + f1
+    
+    elif Ei - Emod[idx_1] < 0:
+        if Emod[idx_1] != Emod[0]:
+            E1 = Emod[idx_1 - 1]
+            E2 = Emod[idx_1]
+            f1 = flxs[idx_1 -1]
+            f2 = flxs[idx_1]
+        
+        else:
+            E1 = Emod[idx_1]
+            E2 = Emod[idx_1 + 1]
+            f1 = flxs[idx_1]
+            f2 = flxs[idx_1 + 1]
+            
+        df_dE = (f2 - f1)/(E2 - E1)
+        fi = df_dE * (Ei - E1) + f1
+    
+    else:
+        fi = flxs[idx_1]
+        
+    return fi
+
+
+
 """
 The relagnsed class
 """
@@ -64,7 +127,7 @@ class kyagnsed:
     
     Emin = 1e-4
     Emax = 1e4
-    numE = 500
+    numE = 4000
     mu = 0.55 #mean particle mass - fixed at solar abundances
     A = 0.3 #Disc albedo = fixed at 0.3 for now
     
@@ -334,7 +397,7 @@ class kyagnsed:
         else:
             dist = self.dl/100
         
-        return Lnus/(4*np.pi*dist**2)
+        return Lnus/(4*np.pi*dist**2 * (1+self.z))
     
     
     def new_ear(self, ear):
@@ -539,8 +602,8 @@ class kyagnsed:
         Calculates luminosity distance to source
         """
         
-        self.Dl = self.D * (1+self.z) #In Mpc
-        self.dl = self.d * (1+self.z) #In cm
+        self.Dl = self.D# * (1+self.z) #In Mpc
+        self.dl = self.d# * (1+self.z) #In cm
     
     
     
@@ -744,7 +807,7 @@ class kyagnsed:
     
                 phs = fluxs/Emids
                 for j in range(len(es) - 1):
-                    flx[j] = dEs[j]*phs[j]
+                    flx[j] = dEs[j] * interp_spec(Emids[j], self.Egrid, phs)
                         
                         
             parinfo_ad = ('pn "" 1 0.1 0 0 2 2',) #just a dummy parameter to make xspec happy
@@ -861,7 +924,7 @@ class kyagnsed:
                 
                 phs = fluxs/Emids
                 for j in range(len(es) - 1):
-                    flx[j] = dEs[j]*phs[j]
+                    flx[j] = dEs[j] * interp_spec(Emids[j], self.Egrid, phs)
             
             parinfo_ad = ('pn "" 1 0.1 0 0 2 2',) #just a dummy parameter to make xspec happy
             xspec.AllModels.addPyMod(warm_ann, parinfo_ad, 'add')
@@ -1086,7 +1149,7 @@ class kyagnsed:
                 phs = fluxs/Emids
                 
                 for j in range(len(es) - 1):
-                    flx[j] = dEs[j]*phs[j]
+                    flx[j] = dEs[j] * interp_spec(Emids[j], self.Egrid, phs)
             
             parinfo_ad = ('pn "" 1 0.1 0 0 2 2',) #just a dummy parameter to make xspec happy
             xspec.AllModels.addPyMod(hot_ann, parinfo_ad, 'add')

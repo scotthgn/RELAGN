@@ -23,21 +23,21 @@ from kyagnsed import kyagnsed
 
 #Params for testing
 M = 2e8
-D = 1
-log_mdot = -1.5 
-a = 0.9
-cos_inc = 0.6
+D = 200
+log_mdot = -1.22557
+a = 0.7
+cos_inc = 0.9
 kte_h =100
-kte_w = 0.6
-gamma_h = 1.7
-gamma_w = 2.7
-r_h = 10
-r_w = 50
+kte_w = 0.248639
+gamma_h = 2.02255
+gamma_w = 2.75698
+r_h = 12.8984
+r_w = 404.602
 l_rout = -1
 fcol = 1
 hmax = 10
-rep = 0
-z = 0
+rep = 1
+z = 0.045
 
 
 fig = plt.figure(figsize=(10, 8))
@@ -98,8 +98,8 @@ except:
 
 
 ax1.legend(frameon=False)
-ax1.set_ylim(1e-8, 1e-5)
-#ax1.set_ylim(1e-10, 1e-7)
+#ax1.set_ylim(1e-8, 1e-5)
+ax1.set_ylim(1e-14, 1e-9)
 ax1.set_xlim(3e13, 1e21)
 ax1.set_xlabel(r'Frequency, $\nu$   (Hz)')
 ax1.set_ylabel(r'$\nu F_{\nu}$   (ergs cm$^{-2}$ s$^{-1}$)')

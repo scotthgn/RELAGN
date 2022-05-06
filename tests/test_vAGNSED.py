@@ -17,39 +17,39 @@ import xspec
 import astropy.units as u
 
 import sys
-sys.path.append('/home/wljw75/Documents/phd/RELAGNSED/src/')
+sys.path.append('/home/wljw75/Documents/phd/KYAGNSED/src/')
 
-from relagnsed import relagnsed
+from kyagnsed import kyagnsed
 
 
 #Params for testing
 M = 10
 D = 1
-log_mdot = -1.5
+log_mdot = -1.41721
 a = 0
-cos_inc = 0.5
+cos_inc = 0.9
 kte_h =100
-kte_w = 1
-gamma_h = 1.7
-gamma_w = 2.7
-r_h = 10
-r_w = 50
+kte_w = 0.2
+gamma_h = 2.07052
+gamma_w = 2.74571
+r_h = 13.3217
+r_w = 387.798
 l_rout = -1
 fcol = 1
 hmax = 10
-rep = 1
+rep = 0
 z = 0
 
 
 #Calculating my model components
-myagn = relagnsed(M, D, log_mdot, a, cos_inc, kte_h, kte_w, gamma_h, gamma_w,
+myagn = kyagnsed(M, D, log_mdot, a, cos_inc, kte_h, kte_w, gamma_h, gamma_w,
                   r_h, r_w, l_rout, fcol, hmax, rep, z)
 
 myagn.set_cgs() #sets cgs units
 myagn.set_flux()
 
 nus = myagn.nu_obs
-ftot = myagn.totSpec_std()
+ftot = myagn.totSpec_std() 
 
 fd = myagn.Lnu_disc_norel
 fw = myagn.Lnu_warm_norel
@@ -103,6 +103,17 @@ ax2.set_xlabel('Energy (keV)')
 
 
 plt.tight_layout()
+plt.show()
+
+
+plt.plot(nus, (ftot-fs_agn)/ftot)
+plt.xlim(1e13, 1e19)
+plt.ylim(-0.5, 0.5)
+plt.xscale('log')
+plt.show()  
+
+plt.loglog(nus, abs(nus-nu_agn.value))
+plt.xlim(1e13, 1e19)
 plt.show()
 
 
