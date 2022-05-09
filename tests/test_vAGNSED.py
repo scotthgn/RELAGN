@@ -32,8 +32,8 @@ kte_h =100
 kte_w = 0.2
 gamma_h = 2.07052
 gamma_w = 2.74571
-r_h = 13.3217
-r_w = 387.798
+r_h = 450
+r_w = 500
 l_rout = -1
 fcol = 1
 hmax = 10
@@ -101,19 +101,24 @@ def to_energy(nu):
 ax2 = ax1.secondary_xaxis('top', functions=(to_energy, to_energy))
 ax2.set_xlabel('Energy (keV)')
 
+ax1.axvline(4e17, ls='dotted', color='green')
 
 plt.tight_layout()
 plt.show()
 
 
-plt.plot(nus, (ftot-fs_agn)/ftot)
+plt.plot(nus, 100 * (ftot-fs_agn)/ftot)
 plt.xlim(1e13, 1e19)
-plt.ylim(-0.5, 0.5)
+plt.ylim(-2.5, 2.5)
 plt.xscale('log')
+plt.axvline(4e17, ls='dotted', color='green')
+plt.axhline(0, ls='-.', color='k')
+plt.ylabel('% Difference')
 plt.show()  
 
-plt.loglog(nus, abs(nus-nu_agn.value))
+plt.loglog(nus, abs(nus/nu_agn.value))
 plt.xlim(1e13, 1e19)
 plt.show()
 
-
+print(np.trapz(ftot, nus), np.trapz(fs_agn, nu_agn))
+print(myagn.r_sg)

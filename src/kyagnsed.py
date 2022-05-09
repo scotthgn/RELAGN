@@ -127,11 +127,11 @@ class kyagnsed:
     
     Emin = 1e-4
     Emax = 1e4
-    numE = 4000
+    numE = 2000
     mu = 0.55 #mean particle mass - fixed at solar abundances
     A = 0.3 #Disc albedo = fixed at 0.3 for now
     
-    dr_dex = 10 #grid spacing - N points per decade
+    dr_dex = 30 #grid spacing - N points per decade
     
     as_cgs = False #This flags whether to use SI or cgs - False => SI
     as_counts = False #Flags wheter to return as photon counts
@@ -267,6 +267,7 @@ class kyagnsed:
         
         #calculating coronal luminosity
         self.reprocess = 0
+        self._hot_specShape()
         self.Lx = self.hotCorona_lumin()
         self.reprocess = reprocess
         
@@ -331,6 +332,33 @@ class kyagnsed:
         else:
             print('WARNING! hmax > r_h ------- Setting hmax = r_h')
             self.hmax = self.r_h
+    
+    
+    
+    def _change_rBins(self, new_drdex):
+        """
+        JUST FOR TESTING PURPOSES!!!! Allows changing of radial bin-width
+        in an object oriented manner - makes testing easier...
+
+        Parameters
+        ----------
+        new_drdex : float
+            New number of steps per decade.
+
+        """
+        self.dr_dex = new_drdex
+        self.dlog_r = 1/self.dr_dex
+        
+        self.logr_ad_bins = self._make_rbins(np.log10(self.r_w), np.log10(self.r_out))
+        self.logr_wc_bins = self._make_rbins(np.log10(self.r_h), np.log10(self.r_w))
+        self.logr_hc_bins = self._make_rbins(np.log10(self.risco), np.log10(self.r_h))
+        
+        #calculating coronal luminosity
+        self.reprocess = 0
+        self._hot_specShape()
+        self.Lx = self.hotCorona_lumin()
+
+        
     
     
     """
@@ -420,6 +448,8 @@ class kyagnsed:
         self.Emax = max(self.Egrid)
         self.numE = len(self.Egrid)
         xspec.AllData.dummyrsp(self.Emin, self.Emax, self.numE)
+        
+        self._hot_specShape()
         
         
     
@@ -748,10 +778,29 @@ class kyagnsed:
         Tann = T4_ann**(1/4)
         
         kTann = k_B * Tann
-        kTann = (kTann * u.J).to(u.keV).value #converting T to keV for nthcomp
+        #kTann = (kTann * u.J).to(u.keV).value #converting T to keV for nthcomp
+        kTann = Tann/1.16048e7
         
         ph_nth = donthcomp(self.Egrid, [self.gamma_w, self.kTe_w,
-                                        kTann, 1, 0])
+                                        kTann, 0, 0])
+        
+        """
+        mth = xspec.Model('nthcomp', setPars=(self.gamma_w, 1,
+                                        kTann, 0, 0))
+        mth.setPars({2:str(self.kTe_w) + ' -1 0.1 0.1 10 10'})
+        
+        xspec.Plot.device = '/null'
+                
+        xspec.Plot('model')
+        Es = np.array(xspec.Plot.x())
+        ph_nth_xs = np.array(xspec.Plot.model()) * Es
+        
+        #re-cast onto model grid
+        ph_nth = np.array([])
+        for j in range(len(self.Egrid)):
+            ph_j = interp_spec(self.Egrid[j], Es, ph_nth_xs)
+            ph_nth = np.append(ph_nth, [ph_j])
+        """
         ph_nth = (ph_nth * u.W/u.keV).to(u.W/u.Hz, 
                                             equivalencies=u.spectral()).value
         
@@ -1038,6 +1087,33 @@ class kyagnsed:
         return kT_seed
     
     
+    def _hot_specShape(self):
+        """
+        Calls pyNTHCOMP for the hot compton region, as here spectral shape
+        will remain the same in non-relativistic case accross entire corona
+        (at least in this slightly simplified model...)
+        
+        Calling here saves repeatedly calling nthcomp when calculating 
+        relativsitc spec.
+
+        """
+        
+        kTseed = self.seed_tempHot()
+        if kTseed < self.kTe_h:
+            #Ensures we get energetics right!
+            Fnu_hot = donthcomp(self.Egrid, [self.gamma_h, self.kTe_h, kTseed,
+                                             0, 0])
+            
+            Fnu_hot = (Fnu_hot * u.W/u.keV).to(u.W/u.Hz, 
+                                            equivalencies=u.spectral()).value
+        
+        else:
+            Fnu_hot = np.zeros(len(self.Egrid))
+        
+        self.Fnu_seed_hot = Fnu_hot
+        
+    
+    
     def Lseed_hotCorona(self):
         """
         Calculated luminsoty of seed photons emitted at radius r, intercepted
@@ -1049,25 +1125,31 @@ class kyagnsed:
             Total seed photon luminosity seen by corona - units : W
 
         """
-        logr_all_grid = self._make_rbins(np.log10(self.r_h), np.log10(self.r_out))
+        
+        logr_tot_bins = self._make_rbins(np.log10(self.r_h), np.log10(self.r_out))
         Lseed_tot = 0
-        for i in range(len(logr_all_grid) - 1):
-            dr = 10**logr_all_grid[i+1] - 10**logr_all_grid[i]
-            rmid = 10**(logr_all_grid[i] + 0.5 * self.dlog_r)
+        hc = min(self.r_h, self.hmax) #corona height can't be > r_h!!
+        for i in range(len(logr_tot_bins) - 1):
+            dr = 10**logr_tot_bins[i+1] - 10**logr_tot_bins[i]
+            rmid = 10**(logr_tot_bins[i] + self.dlog_r/2)
             
-            if self.hmax <= rmid:
-                theta_0 = np.arcsin(self.hmax/rmid)
+            
+            
+            if hc <= rmid:
+                theta_0 = np.arcsin(hc/rmid)
                 cov_frac = theta_0 - 0.5 * np.sin(2*theta_0)
             else:
-                cov_frac = 1
+                cov_frac = 0
             
-            T4_ann = self.calc_Ttot(rmid)
+    
+            T4_ann = self.calc_Tnt(rmid)
             
             Fr = sigma_sb * T4_ann
             Lr = 2 * 2*np.pi*rmid*dr * Fr * cov_frac/np.pi * self.Rg**2
 
 
             Lseed_tot += Lr
+            
         
         return Lseed_tot
         
@@ -1086,12 +1168,13 @@ class kyagnsed:
         """
         
         Ldiss, err = quad(lambda rc: 2*sigma_sb*self.calc_Tnt(rc) * 2*np.pi*rc * self.Rg**2,
-                     self.risco, self.r_h)
-
-        Lseed = self.Lseed_hotCorona()
+                    self.risco, self.r_h)
         
+        
+        Lseed = self.Lseed_hotCorona()
         Lhot = Ldiss + Lseed
-        return Lhot
+
+        return Lhot 
     
     
     def hotComp_annuli(self, r, dr):
@@ -1100,7 +1183,7 @@ class kyagnsed:
         Neccessary in order to apply kyconv correctly!
 
         """
-        kT_ann = self.seed_tempHot()
+
         T4ann = self.calc_Tnt(r)
         Ldiss_ann = sigma_sb * T4ann * self.Rg**2
         #For Lseed need to /4pi r dr so that normalise correctly in kyconv
@@ -1108,14 +1191,8 @@ class kyagnsed:
         Lseed_ann = self.Lseed_hotCorona()/(4*np.pi*r*dr * (len(self.logr_hc_bins) - 1))
         Ltot_ann = Ldiss_ann + Lseed_ann
         
-        if kT_ann < self.kTe_h:
-            ph_ann = donthcomp(self.Egrid, [self.gamma_h, self.kTe_h, kT_ann, 1, 0])
-            ph_ann = (ph_ann * u.W/u.keV).to(u.W/u.Hz, 
-                                            equivalencies=u.spectral()).value
-            Lnu_ann = Ltot_ann * (ph_ann/np.trapz(ph_ann, self.nu_grid))
-            
-        else:
-            Lnu_ann = np.zeros(len(self.Egrid))
+
+        Lnu_ann = Ltot_ann * (self.Fnu_seed_hot/np.trapz(self.Fnu_seed_hot, self.nu_grid))
             
         return Lnu_ann
         
@@ -1205,8 +1282,9 @@ class kyagnsed:
         kTseed = self.seed_tempHot()
         Lum = self.hotCorona_lumin()
         
+        """
         if kTseed < self.kTe_h:
-            ph_hot = donthcomp(self.Egrid, [self.gamma_h, self.kTe_h, kTseed, 1, 0])
+            ph_hot = donthcomp(self.Egrid, [self.gamma_h, self.kTe_h, kTseed, 0, 0])
             ph_hot = (ph_hot * u.W/u.keV).to(u.W/u.Hz, 
                                             equivalencies=u.spectral()).value
         
@@ -1214,6 +1292,9 @@ class kyagnsed:
         
         else:
             self.Lnu_hot_norel = np.zeros(len(self.Egrid))
+        """
+        self.Lnu_hot_norel = Lum * (self.Fnu_seed_hot/np.trapz(
+            self.Fnu_seed_hot, self.nu_grid))
             
         return self.Lnu_hot_norel 
         

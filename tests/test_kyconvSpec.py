@@ -19,6 +19,9 @@ import sys
 sys.path.append('/home/wljw75/Documents/phd/KYAGNSED/src/')
 
 from kyagnsed import kyagnsed
+import time
+
+ts = time.time()
 
 
 #Params for testing
@@ -96,7 +99,6 @@ try:
 except:
     pass
 
-
 ax1.legend(frameon=False)
 #ax1.set_ylim(1e-8, 1e-5)
 ax1.set_ylim(1e-14, 1e-9)
@@ -110,6 +112,9 @@ def to_energy(nu):
 ax2 = ax1.secondary_xaxis('top', functions=(to_energy, to_energy))
 ax2.set_xlabel('Energy (keV)')
 
+
+tf = time.time()
+print('Runtime = {}s'.format(tf - ts))
 
 plt.tight_layout()
 plt.show()
