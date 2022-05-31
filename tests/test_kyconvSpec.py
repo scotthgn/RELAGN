@@ -25,38 +25,38 @@ ts = time.time()
 
 
 #Params for testing
-M = 2e8
-D = 200
-log_mdot = -1.22557
+M = 10
+D = 1e-2
+log_mdot = -1.2
 a = 0.7
 cos_inc = 0.9
 kte_h =100
-kte_w = 0.248639
-gamma_h = 2.02255
-gamma_w = 2.75698
-r_h = 12.8984
-r_w = 404.602
+kte_w = 0.2
+gamma_h = 1.7
+gamma_w = 2.4
+r_h = -1
+r_w = -1
 l_rout = -1
 fcol = 1
 hmax = 10
-rep = 1
-z = 0.045
+rep = 0
+z = 0
 
 
-fig = plt.figure(figsize=(10, 8))
+fig = plt.figure(figsize=(6, 5))
 ax1 = fig.add_subplot(111)
 
 #Calculating my model components
 myagn = kyagnsed(M, D, log_mdot, a, cos_inc, kte_h, kte_w, gamma_h, gamma_w,
                   r_h, r_w, l_rout, fcol, hmax, rep, z)
 
-myagn.set_cgs() #sets cgs units
+myagn.set_counts() #sets cgs units
 myagn.set_flux() #units of flux
-nu = myagn.nu_obs
+nu = myagn.E_obs
 
 #extracting rel components
 ftot_r = myagn.totSpec_rel()
-ax1.loglog(nu, nu*ftot_r, color='k', label='kyconv*agnsed')
+ax1.loglog(nu, nu*ftot_r, color='red', label='relativistic')
 
 try:
     fd_r = myagn.Lnu_disc_rel
@@ -79,11 +79,11 @@ except:
 
 #Extracting non-rel components
 ftot_n = myagn.totSpec_std()
-ax1.loglog(nu, nu*ftot_n, color='k', ls='-.', label='agnsed')
+ax1.loglog(nu, nu*ftot_n, color='k', ls='-.', label='non-relativistic')
 
 try:
     fd_n = myagn.Lnu_disc_norel
-    ax1.loglog(nu, nu*fd_n, color='red', ls='-.')
+    ax1.loglog(nu, nu*fd_n, color='k', ls='-.')
 except:
     pass
 
@@ -101,17 +101,19 @@ except:
 
 ax1.legend(frameon=False)
 #ax1.set_ylim(1e-8, 1e-5)
-ax1.set_ylim(1e-14, 1e-9)
-ax1.set_xlim(3e13, 1e21)
-ax1.set_xlabel(r'Frequency, $\nu$   (Hz)')
-ax1.set_ylabel(r'$\nu F_{\nu}$   (ergs cm$^{-2}$ s$^{-1}$)')
+ax1.set_ylim(1, 1e1)
+ax1.set_xlim(1e-3, 10)
+#ax1.set_xlim(3e13, 1e21)
+ax1.set_xlabel('Energy (keV)')
+ax1.set_ylabel(r'EF(E)   keV$^{2}$ (Photons s$^{-1}$ cm$^{-2}$ keV$^{-1}$)')
 
+"""
 def to_energy(nu):
     return (nu*u.Hz).to(u.keV, equivalencies=u.spectral()).value
 
 ax2 = ax1.secondary_xaxis('top', functions=(to_energy, to_energy))
 ax2.set_xlabel('Energy (keV)')
-
+"""
 
 tf = time.time()
 print('Runtime = {}s'.format(tf - ts))

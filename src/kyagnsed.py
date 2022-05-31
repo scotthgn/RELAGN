@@ -265,10 +265,15 @@ class kyagnsed:
         self.logr_wc_bins = self._make_rbins(np.log10(self.r_h), np.log10(self.r_w))
         self.logr_hc_bins = self._make_rbins(np.log10(self.risco), np.log10(self.r_h))
         
-        #calculating coronal luminosity
-        self.reprocess = 0
-        self._hot_specShape()
-        self.Lx = self.hotCorona_lumin()
+        #calculating coronal luminosity IF it exists
+        if self.r_h != self.risco:
+            self.reprocess = 0
+            self._hot_specShape()
+            self.Lx = self.hotCorona_lumin()
+        
+        else:
+            self.Lx = 0
+            
         self.reprocess = reprocess
         
         xspec.AllData.dummyrsp(self.Emin, self.Emax, self.numE)
@@ -354,9 +359,10 @@ class kyagnsed:
         self.logr_hc_bins = self._make_rbins(np.log10(self.risco), np.log10(self.r_h))
         
         #calculating coronal luminosity
-        self.reprocess = 0
-        self._hot_specShape()
-        self.Lx = self.hotCorona_lumin()
+        if self.r_h != self.risco:
+            self.reprocess = 0
+            self._hot_specShape()
+            self.Lx = self.hotCorona_lumin()
 
         
     
@@ -784,23 +790,6 @@ class kyagnsed:
         ph_nth = donthcomp(self.Egrid, [self.gamma_w, self.kTe_w,
                                         kTann, 0, 0])
         
-        """
-        mth = xspec.Model('nthcomp', setPars=(self.gamma_w, 1,
-                                        kTann, 0, 0))
-        mth.setPars({2:str(self.kTe_w) + ' -1 0.1 0.1 10 10'})
-        
-        xspec.Plot.device = '/null'
-                
-        xspec.Plot('model')
-        Es = np.array(xspec.Plot.x())
-        ph_nth_xs = np.array(xspec.Plot.model()) * Es
-        
-        #re-cast onto model grid
-        ph_nth = np.array([])
-        for j in range(len(self.Egrid)):
-            ph_j = interp_spec(self.Egrid[j], Es, ph_nth_xs)
-            ph_nth = np.append(ph_nth, [ph_j])
-        """
         ph_nth = (ph_nth * u.W/u.keV).to(u.W/u.Hz, 
                                             equivalencies=u.spectral()).value
         
@@ -1279,20 +1268,8 @@ class kyagnsed:
         Calculates spectrum of hot comptonised region - no relativity
 
         """
-        kTseed = self.seed_tempHot()
         Lum = self.hotCorona_lumin()
         
-        """
-        if kTseed < self.kTe_h:
-            ph_hot = donthcomp(self.Egrid, [self.gamma_h, self.kTe_h, kTseed, 0, 0])
-            ph_hot = (ph_hot * u.W/u.keV).to(u.W/u.Hz, 
-                                            equivalencies=u.spectral()).value
-        
-            self.Lnu_hot_norel = Lum * (ph_hot/np.trapz(ph_hot, self.nu_grid))
-        
-        else:
-            self.Lnu_hot_norel = np.zeros(len(self.Egrid))
-        """
         self.Lnu_hot_norel = Lum * (self.Fnu_seed_hot/np.trapz(
             self.Fnu_seed_hot, self.nu_grid))
             
