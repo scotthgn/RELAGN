@@ -35,7 +35,7 @@ def kyagn(ear, params, flx):
         
     
 #parameter info for xspec
-parinfo_ragn = ('M Msol 10 1 1 100 100 -1',
+parinfo_ragn = ('M Msol 10 1 1 1e10 1e10 -1',
                 'dist Mpc 1 1e-3 1e-3 1e3 1e3 -1',
                 'log_mdot "" -1 -10 -10 2 2 0.01',
                 'astar "" 0 0 0 0.998 0.998 0.001',
