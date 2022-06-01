@@ -28,14 +28,14 @@ ts = time.time()
 M = 10
 D = 1e-2
 log_mdot = -1.2
-a = 0.7
+a = 0
 cos_inc = 0.9
 kte_h =100
 kte_w = 0.2
 gamma_h = 1.7
 gamma_w = 2.4
-r_h = -1
-r_w = -1
+r_h = 20
+r_w = 50
 l_rout = -1
 fcol = 1
 hmax = 10
@@ -50,9 +50,9 @@ ax1 = fig.add_subplot(111)
 myagn = kyagnsed(M, D, log_mdot, a, cos_inc, kte_h, kte_w, gamma_h, gamma_w,
                   r_h, r_w, l_rout, fcol, hmax, rep, z)
 
-myagn.set_counts() #sets cgs units
+myagn.set_cgs() #sets cgs units
 myagn.set_flux() #units of flux
-nu = myagn.E_obs
+nu = myagn.nu_obs
 
 #extracting rel components
 ftot_r = myagn.totSpec_rel()
@@ -70,6 +70,7 @@ try:
 except:
     pass
 
+print(myagn.Lnu_hot_rel)
 try:
     fh_r = myagn.Lnu_hot_rel
     ax1.loglog(nu, nu*fh_r, color='blue')
@@ -100,20 +101,20 @@ except:
     pass
 
 ax1.legend(frameon=False)
-#ax1.set_ylim(1e-8, 1e-5)
-ax1.set_ylim(1, 1e1)
-ax1.set_xlim(1e-3, 10)
-#ax1.set_xlim(3e13, 1e21)
+ax1.set_ylim(1e-10, 1e-8)
+#ax1.set_ylim(1, 1e1)
+#ax1.set_xlim(1e-3, 10)
+ax1.set_xlim(3e13, 1e20)
 ax1.set_xlabel('Energy (keV)')
 ax1.set_ylabel(r'EF(E)   keV$^{2}$ (Photons s$^{-1}$ cm$^{-2}$ keV$^{-1}$)')
 
-"""
+
 def to_energy(nu):
     return (nu*u.Hz).to(u.keV, equivalencies=u.spectral()).value
 
 ax2 = ax1.secondary_xaxis('top', functions=(to_energy, to_energy))
 ax2.set_xlabel('Energy (keV)')
-"""
+
 
 tf = time.time()
 print('Runtime = {}s'.format(tf - ts))

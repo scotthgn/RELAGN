@@ -1180,7 +1180,6 @@ class kyagnsed:
         Lseed_ann = self.Lseed_hotCorona()/(4*np.pi*r*dr * (len(self.logr_hc_bins) - 1))
         Ltot_ann = Ldiss_ann + Lseed_ann
         
-
         Lnu_ann = Ltot_ann * (self.Fnu_seed_hot/np.trapz(self.Fnu_seed_hot, self.nu_grid))
             
         return Lnu_ann
@@ -1192,12 +1191,13 @@ class kyagnsed:
         Calculates spectrum of hot compton region - with relativity!
 
         """
+        Ltest = 0
         for i in range(len(self.logr_hc_bins) - 1):
             dr_bin = 10**self.logr_hc_bins[i+1] - 10**self.logr_hc_bins[i]
             rmid = 10**(self.logr_hc_bins[i] + self.dlog_r/2)
             
             Lnu_ann = self.hotComp_annuli(rmid, dr_bin)
-            
+            Ltest += np.trapz(Lnu_ann, self.nu_grid)
             #creating pyxspec model so can do convolution with kyconv
             def hot_ann(es, params, flx):
                 Els = np.array(es[:-1])
@@ -1239,6 +1239,9 @@ class kyagnsed:
                 
                 L_kev = phs_r * Es * 4 * np.pi * self.dl**2
                 Lnu_r = (L_kev * u.keV/u.s/u.keV).to(u.W/u.Hz, equivalencies=u.spectral()).value
+                Lnu_r /= (self.cosinc/0.5) #kyconv includes inclination factor
+                                           #However, since spherical geometry
+                                           #This needs to be removed!!
                 
                 xspec.AllModels.clear()
             
@@ -1246,7 +1249,7 @@ class kyagnsed:
                 #If out of bounds for tables do non-relativistic
                 #This is fine - as beyon 1000Rg Gr effects tiny!
                 #Since no kyconv - we now apply the normalisation here instead
-                Lnu_r = Lnu_ann * 2*np.pi * 2 * rmid * dr_bin   * self.cosinc/0.5
+                Lnu_r = Lnu_ann * 2*np.pi * 2 * rmid * dr_bin
 
             if i == 0:
                 Lnu_all = Lnu_r
@@ -1258,7 +1261,7 @@ class kyagnsed:
             Lnu_tot = np.sum(Lnu_all, axis=-1)
         else:
             Lnu_tot = Lnu_all
-            
+
         self.Lnu_hot_rel = Lnu_tot
         return Lnu_tot
         
@@ -1269,7 +1272,6 @@ class kyagnsed:
 
         """
         Lum = self.hotCorona_lumin()
-        
         self.Lnu_hot_norel = Lum * (self.Fnu_seed_hot/np.trapz(
             self.Fnu_seed_hot, self.nu_grid))
             
