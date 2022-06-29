@@ -836,7 +836,7 @@ class relagnsed:
                                               equivalencies=u.spectral()).value
                 
             fluxs = fluxs/(4*np.pi * self.dl**2)
-            phs = list(fluxs/self.Egrid)
+            phs = list((self.dEs*fluxs)/self.Egrid)
 
                         
             
@@ -865,7 +865,7 @@ class relagnsed:
                 Ein = list(self.Ebins)
                 xspec.callModelFunction('kyconv', Ein, kyparams, phs)
                 
-                phs_r = np.array(phs)
+                phs_r = np.array(phs)/self.dEs
                 
                 L_kev = phs_r * self.Egrid * 4 * np.pi * self.dl**2 
                 Lnu_r = (L_kev * u.keV/u.s/u.keV).to(u.W/u.Hz, equivalencies=u.spectral()).value
@@ -936,7 +936,7 @@ class relagnsed:
             
             fluxs = fluxs/(4*np.pi * self.dl**2)
             
-            phs = fluxs/self.Egrid
+            phs = list((fluxs*self.dEs)/self.Egrid)
 
         
             #Convolving annulus with kyconv
@@ -949,8 +949,8 @@ class relagnsed:
                             r_br, 0, 0, self.numE, -1]
 
                 xspec.callModelFunction('kyconv', list(self.Ebins), 
-                                                kyparams, list(phs))
-                phs_r = np.array(phs)
+                                                kyparams, phs)
+                phs_r = np.array(phs)/self.dEs
                 
                 
                 L_kev = phs_r * self.Egrid * 4 * np.pi * self.dl**2
@@ -1170,7 +1170,7 @@ class relagnsed:
             
         
             fluxs = fluxs/(4*np.pi * self.dl**2)
-            phs = fluxs/self.Egrid
+            phs = list((fluxs*self.dEs)/self.Egrid)
                 
             
             if self.logr_hc_bins[i] <= 3 and self.logr_hc_bins[i+1] <= 3:
@@ -1183,8 +1183,8 @@ class relagnsed:
                             r_br, 0, 0, self.numE, -1]
                 
                 xspec.callModelFunction('kyconv', list(self.Ebins), 
-                                                kyparams, list(phs))
-                phs_r = np.array(phs)
+                                                kyparams, phs)
+                phs_r = np.array(phs)/self.dEs
                 
                 L_kev = phs_r * self.Egrid * 4 * np.pi * self.dl**2
                 Lnu_r = (L_kev * u.keV/u.s/u.keV).to(u.W/u.Hz, equivalencies=u.spectral()).value
