@@ -1156,12 +1156,12 @@ class kyagnsed:
 
         """
         
-        Ldiss, err = quad(lambda rc: 2*sigma_sb*self.calc_Tnt(rc) * 2*np.pi*rc * self.Rg**2,
+        self.Ldiss, err = quad(lambda rc: 2*sigma_sb*self.calc_Tnt(rc) * 2*np.pi*rc * self.Rg**2,
                     self.risco, self.r_h)
         
         
-        Lseed = self.Lseed_hotCorona()
-        Lhot = Ldiss + Lseed
+        self.Lseed = self.Lseed_hotCorona()
+        Lhot = self.Ldiss + self.Lseed
 
         return Lhot 
     
