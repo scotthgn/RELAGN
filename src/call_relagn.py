@@ -35,7 +35,7 @@ log_rout = params[11]
 fcol = params[12]
 h_max = params[13]
 reprocess = params[14]
-z = params[15] #fixing redshift at 0 for now - change later
+z = params[15] 
 
 ragn = relagnsed(M, dist, log_mdot, a, cos_inc, abs(kTe_hot), abs(kTe_warm), 
                  gamma_hot, abs(gamma_warm), r_hot, r_warm, log_rout, fcol, h_max, reprocess, z)

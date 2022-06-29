@@ -18,8 +18,7 @@ import numpy as np
 from scipy.integrate import quad
 import xspec
 import warnings
-import os
-import matplotlib.pyplot as plt
+from threading import Thread
 
 import astropy.constants as const
 import astropy.units as u
@@ -198,7 +197,7 @@ class relagnsed:
         z : float
             Redshift
         """
-        
+
         #Read params
         self.M = M
         self.D, self.d = dist, (dist * u.Mpc).to(u.cm).value
@@ -228,7 +227,7 @@ class relagnsed:
         self._calc_r_selfGravity()
         self._calc_Ledd()
         self._calc_efficiency()
-        
+
         
         if log_rout < 0:
             self.r_out = self.r_sg #setting to self gravity if log_rout < 0
@@ -251,12 +250,14 @@ class relagnsed:
         
         
         #Energy/frequency grid
-        self.Egrid = np.geomspace(self.Emin, self.Emax, self.numE)
+        self.Ebins = np.geomspace(self.Emin, self.Emax, self.numE)
+        self.dEs = self.Ebins[1:] - self.Ebins[:-1]
+
+        self.Egrid = self.Ebins[:-1] + 0.5 * self.dEs
         self.nu_grid = (self.Egrid * u.keV).to(u.Hz,
                                 equivalencies=u.spectral()).value
         self.nu_obs = self.nu_grid/(1 + self.z) #Observers frame
         self.E_obs = self.Egrid/(1 + self.z)
-        
         
         #Creating radal grid over disc and warm compton regions
         #using spacing of dr_dex
@@ -276,8 +277,9 @@ class relagnsed:
             
         self.reprocess = reprocess
         
-        xspec.AllData.dummyrsp(self.Emin, self.Emax, self.numE)
-        
+
+        #xspec.AllData.dummyrsp(self.Emin, self.Emax, self.numE)
+
     
     
     
@@ -444,7 +446,8 @@ class relagnsed:
             New energy grid - units : keV.
 
         """
-        self.Egrid = ear         
+        self.Ebins = ear     
+        self.Egrid = self.Ebins + 0.5 * (self.Ebins[1:] - self.Ebin[:-1])
         self.nu_grid = (self.Egrid * u.keV).to(u.Hz,
                                 equivalencies=u.spectral()).value
         self.nu_obs = self.nu_grid/(1 + self.z) #Observers frame
@@ -826,30 +829,16 @@ class relagnsed:
             rmid = 10**(self.logr_ad_bins[i] + self.dlog_r/2) #geometric center of bin
             Lnu_ann = self.disc_annuli(rmid, dr_bin)
 
+        
+            #Multiply by 4 because kyconv only does pi r dr
+            #We want 4 pi r dr
+            fluxs = (Lnu_ann*4 * u.W/u.Hz).to(u.keV/u.s/u.keV,
+                                              equivalencies=u.spectral()).value
                 
-                #Defining XSPEC model in order to convolve with kyconv
-            def disc_ann(es, params, flx):
-                Els = np.array(es[:-1])
-                Ers = np.array(es[1:])
-                
-                dEs = Ers - Els
-                Emids = Els + dEs/2
-                
-                #Multiply by 4 because kyconv only does pi r dr
-                #We want 4 pi r dr
-                fluxs = (Lnu_ann*4 * u.W/u.Hz).to(u.keV/u.s/u.keV,
-                                                equivalencies=u.spectral()).value
-                
-            
-                fluxs = fluxs/(4*np.pi * self.dl**2)
-    
-                phs = fluxs/Emids
-                for j in range(len(es) - 1):
-                    flx[j] = dEs[j] * interp_spec(Emids[j], self.Egrid, phs)
+            fluxs = fluxs/(4*np.pi * self.dl**2)
+            phs = list(fluxs/self.Egrid)
+
                         
-                        
-            parinfo_ad = ('pn "" 1 0.1 0 0 2 2',) #just a dummy parameter to make xspec happy
-            xspec.AllModels.addPyMod(disc_ann, parinfo_ad, 'add')
             
             #Convolving annulus with kyconv
             #kyconv params are:
@@ -870,21 +859,17 @@ class relagnsed:
                 r_out = 10**self.logr_ad_bins[i+1]
                 r_br = rmid
                 
-                kyparams = (self.a, np.rad2deg(self.inc), r_in, 0, r_out, 0, 0,
-                         r_br, 0, 0, self.numE, -1)
+                kyparams = [self.a, np.rad2deg(self.inc), r_in, 0, r_out, 0, 0,
+                         r_br, 0, 0, self.numE, -1]
                 
-                xspec.Model('kyconv*disc_ann', setPars=kyparams)
-                #xspec.Model('disc_ann')
-                xspec.Plot.device = '/null'
+                Ein = list(self.Ebins)
+                xspec.callModelFunction('kyconv', Ein, kyparams, phs)
                 
-                xspec.Plot('model')
-                Es = np.array(xspec.Plot.x())
-                phs_r = np.array(xspec.Plot.model())
+                phs_r = np.array(phs)
                 
-                L_kev = phs_r * Es * 4 * np.pi * self.dl**2
+                L_kev = phs_r * self.Egrid * 4 * np.pi * self.dl**2 
                 Lnu_r = (L_kev * u.keV/u.s/u.keV).to(u.W/u.Hz, equivalencies=u.spectral()).value
                 
-                xspec.AllModels.clear()
                 
             else:
                 #If out of bounds for tables do non-relativistic
@@ -946,48 +931,30 @@ class relagnsed:
             
             Lnu_ann = self.warmComp_annuli(rmid, dr_bin)
             
-            #creating pyxspec model so can do convolution with kyconv
-            def warm_ann(es, params, flx):
-                Els = np.array(es[:-1])
-                Ers = np.array(es[1:])
-                
-                dEs = Ers - Els
-                Emids = Els + dEs/2
-                
-                fluxs = (Lnu_ann*4 * u.W/u.Hz).to(u.keV/u.s/u.keV,
-                                                equivalencies=u.spectral()).value
-                
+            fluxs = (Lnu_ann*4 * u.W/u.Hz).to(u.keV/u.s/u.keV,
+                                              equivalencies=u.spectral()).value
             
-                fluxs = fluxs/(4*np.pi * self.dl**2)
-                
-                phs = fluxs/Emids
-                for j in range(len(es) - 1):
-                    flx[j] = dEs[j] * interp_spec(Emids[j], self.Egrid, phs)
+            fluxs = fluxs/(4*np.pi * self.dl**2)
             
-            parinfo_ad = ('pn "" 1 0.1 0 0 2 2',) #just a dummy parameter to make xspec happy
-            xspec.AllModels.addPyMod(warm_ann, parinfo_ad, 'add')
-            
+            phs = fluxs/self.Egrid
+
+        
             #Convolving annulus with kyconv
             #See do_relDiscSpec for explanation of kyparams
             if self.logr_wc_bins[i] <= 3 and self.logr_wc_bins[i+1] <= 3:
                 r_in = 10**self.logr_wc_bins[i]
                 r_out = 10**self.logr_wc_bins[i+1]
                 r_br = rmid
-                kyparams = (self.a, np.rad2deg(self.inc), r_in, 0, r_out, 0, 0,
-                            r_br, 0, 0, self.numE, -1)
+                kyparams = [self.a, np.rad2deg(self.inc), r_in, 0, r_out, 0, 0,
+                            r_br, 0, 0, self.numE, -1]
 
-                xspec.Model('kyconv*warm_ann', setPars=kyparams)
-                xspec.Plot.device = '/null'
-                
-                xspec.Plot('model')
-                Es = np.array(xspec.Plot.x())
-                phs_r = np.array(xspec.Plot.model())
+                xspec.callModelFunction('kyconv', list(self.Ebins), 
+                                                kyparams, list(phs))
+                phs_r = np.array(phs)
                 
                 
-                L_kev = phs_r * Es * 4 * np.pi * self.dl**2
+                L_kev = phs_r * self.Egrid * 4 * np.pi * self.dl**2
                 Lnu_r = (L_kev * u.keV/u.s/u.keV).to(u.W/u.Hz, equivalencies=u.spectral()).value
-                
-                xspec.AllModels.clear()
             
             else:
                 #If out of bounds for tables do non-relativistic
@@ -1191,34 +1158,20 @@ class relagnsed:
         Calculates spectrum of hot compton region - with relativity!
 
         """
-        Ltest = 0
+
         for i in range(len(self.logr_hc_bins) - 1):
             dr_bin = 10**self.logr_hc_bins[i+1] - 10**self.logr_hc_bins[i]
             rmid = 10**(self.logr_hc_bins[i] + self.dlog_r/2)
             
             Lnu_ann = self.hotComp_annuli(rmid, dr_bin)
-            Ltest += np.trapz(Lnu_ann, self.nu_grid)
-            #creating pyxspec model so can do convolution with kyconv
-            def hot_ann(es, params, flx):
-                Els = np.array(es[:-1])
-                Ers = np.array(es[1:])
                 
-                dEs = Ers - Els
-                Emids = Els + dEs/2
-                
-                fluxs = (Lnu_ann*4 * u.W/u.Hz).to(u.keV/u.s/u.keV,
-                                                equivalencies=u.spectral()).value
-                
+            fluxs = (Lnu_ann*4 * u.W/u.Hz).to(u.keV/u.s/u.keV,
+                                              equivalencies=u.spectral()).value
             
-                fluxs = fluxs/(4*np.pi * self.dl**2)
+        
+            fluxs = fluxs/(4*np.pi * self.dl**2)
+            phs = fluxs/self.Egrid
                 
-                phs = fluxs/Emids
-                
-                for j in range(len(es) - 1):
-                    flx[j] = dEs[j] * interp_spec(Emids[j], self.Egrid, phs)
-            
-            parinfo_ad = ('pn "" 1 0.1 0 0 2 2',) #just a dummy parameter to make xspec happy
-            xspec.AllModels.addPyMod(hot_ann, parinfo_ad, 'add')
             
             if self.logr_hc_bins[i] <= 3 and self.logr_hc_bins[i+1] <= 3:
                 r_in = 10**self.logr_hc_bins[i]
@@ -1226,18 +1179,14 @@ class relagnsed:
                 r_br = rmid
                 
                 #Convolving annulus with kyconv
-                kyparams = (self.a, np.rad2deg(self.inc), r_in, 0, r_out, 0, 0,
-                            r_br, 0, 0, self.numE, -1)
+                kyparams = [self.a, np.rad2deg(self.inc), r_in, 0, r_out, 0, 0,
+                            r_br, 0, 0, self.numE, -1]
                 
-                xspec.Model('kyconv*hot_ann', setPars=kyparams)
-                xspec.Plot.device = '/null'
+                xspec.callModelFunction('kyconv', list(self.Ebins), 
+                                                kyparams, list(phs))
+                phs_r = np.array(phs)
                 
-                xspec.Plot('model')
-                Es = np.array(xspec.Plot.x())
-                phs_r = np.array(xspec.Plot.model())
-                
-                
-                L_kev = phs_r * Es * 4 * np.pi * self.dl**2
+                L_kev = phs_r * self.Egrid * 4 * np.pi * self.dl**2
                 Lnu_r = (L_kev * u.keV/u.s/u.keV).to(u.W/u.Hz, equivalencies=u.spectral()).value
                 Lnu_r /= (self.cosinc/0.5) #kyconv includes inclination factor
                                            #However, since spherical geometry
@@ -1292,7 +1241,7 @@ class relagnsed:
         Total spectrum from the relativistic components
         
         """
-        
+
         #Checking if components already exist in order to avoid multiple calculations
         if hasattr(self, 'Lnu_disc_rel'):
             Ld = self.Lnu_disc_rel
@@ -1405,7 +1354,152 @@ class relagnsed:
 
 
 
+"""
+##############################################################################
+#---- Functions for loading into pyXspec
+##############################################################################
+
+def call_relagn(ear, params):     
+        
+    #Read params
+    M = params[0]
+    dist = params[1]
+    log_mdot = params[2]
+    a = params[3]
+    cos_inc = params[4]
+    kTe_hot = params[5]
+    kTe_warm = params[6]
+    gamma_hot = params[7]
+    gamma_warm = params[8]
+    r_hot = params[9]
+    r_warm = params[10]
+    log_rout = params[11]
+    fcol = params[12]
+    h_max = params[13]
+    reprocess = params[14]
+    z = params[15] 
+
+    #Initiate model
+    rsed = relagnsed(M, dist, log_mdot, a, cos_inc, kTe_hot, kTe_warm, 
+                     gamma_hot, gamma_warm, r_hot, r_warm, log_rout, fcol, 
+                     h_max, reprocess, z)
+
+        
+    #Extracting energy bins
+    Els = np.array(ear[:-1])
+    Ers = np.array(ear[1:])
+    dEs = Ers - Els
+    Emid = Els + 0.5*dEs #evaluate model at center of bin
     
+
+    #Checking wheather to extend default energy grid
+    if min(ear) < 1e-4:
+        new_emin = min(ear)
+    else:
+        new_emin = 1e-4
+        
+    if max(ear) > 1e4:
+        new_emax = max(ear)
+    else:
+        new_emax = 1e4
+
+    rsed.new_ear(np.geomspace(new_emin, new_emax, 1000)) #Ensuring sufficient energy coverage
     
+    rsed.set_counts()
+    rsed.set_flux() #getting output as photons/s/cm^2/keV
     
+    #model
+    Emod = rsed.E_obs
+    flxs_all = rsed.totSpec_rel() #total spectrum
+    
+    #Checking switching params
+    if kTe_hot < 0:
+        flxs = rsed.Lnu_hot_rel
+    elif kTe_warm < 0:
+        flxs = rsed.Lnu_warm_rel
+    elif gamma_warm < 0:     
+        flxs = rsed.Lnu_disc_rel
+    else:
+        flxs = flxs_all
+        
+    idx_neg = np.argwhere(flxs < 0)
+    flxs[idx_neg] = 0.
+        
+        
+    #Extracting part of the spectrum of interest
+    idx_low = np.argwhere(Emod < min(ear))
+    Emod = np.delete(Emod, idx_low)
+    flxs = np.delete(flxs, idx_low)
+    
+    idx_high = np.argwhere(Emod > max(ear))
+    Emod = np.delete(Emod, idx_high)
+    flxs = np.delete(flxs, idx_high)
+
+    flx_spec = np.array([])
+    for i in range(len(Emid)):
+        fnew= interp_spec(Emid[i], Emod, flxs_all)
+        flx_spec = np.append(flx_spec, [dEs[i] * fnew])
+    
+    return flx_spec
+        
+
+
+
+class relThread(Thread):
+    
+    def __init__(self, args):
+        Thread.__init__(self)
+        self.args = args
+        self.flxs = None
+    
+    def run(self):
+        es = self.args[0]
+        pars = self.args[1]
+        
+        self.flxs = call_relagn(es, pars)
+
+
+
+
+
+
+
+
+
+def get_relagnParinfo():
+    #parameter info for xspec
+    parinfo_ragn = ('M Msol 10 1 1 1e10 1e10 -1',
+                    'dist Mpc 1 1e-3 1e-3 1e3 1e3 -1',
+                    'log_mdot "" -1 -10 -10 2 2 0.01',
+                    'astar "" 0 0 0 0.998 0.998 0.001',
+                    'cosi "" 0.5 0.09 0.09 0.998 0.998 0.001',
+                    'kTe_hot keV 100 10 10 300 300 -1',
+                    'kTe_warm keV 0.2 0.01 0.01 1 1 0.01',
+                    'gamma_hot "" 1.7 1.3 1.3 3 3 0.01',
+                    'gamma_warm "" 2.7 2 2 5 10 0.01',
+                    'r_hot Rg 10 6 6 500 500 0.01',
+                    'r_warm Rg 20 6 6 500 500 0.01',
+                    'logrout self_g -1 -1 -1 7 7 -1',
+                    'fcol "" 1 1 1 5 5 0.01',
+                    'hmax Rg 10 6 6 10 10 -1',
+                    '$reprocess 0',
+                    'z "" 0 0 0 1 1 -1')
+    
+    return parinfo_ragn
+
+
+
+def relagn(ear, params, flx):
+    #th = relThread(args=(ear, params))
+    #th.start()
+    #th.join()
+    fs = call_relagn(ear, params)
+    #fs = th.flxs    
+    #print(fs)
+    for j in range(len(ear) - 1):
+        flx[j] = fs[j]
+
+"""
+
+
     
