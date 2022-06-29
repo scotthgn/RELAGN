@@ -19,16 +19,16 @@ import os
 
 wdir = os.getcwd()
 fpath = os.path.dirname(os.path.realpath(__file__))
-def kyagn(ear, params, flx):    
+def relagn(ear, params, flx):    
     np.savetxt('ear.dat', ear)
-    np.savetxt('kypars.dat', params)
-    os.system('python ' + fpath + '/call_kyagnsed.py')
+    np.savetxt('relpars.dat', params)
+    os.system('python ' + fpath + '/call_relagn.py')
     
-    flxs = np.loadtxt(wdir + '/kyagn_fluxs.dat')
+    flxs = np.loadtxt(wdir + '/relagn_fluxs.dat')
     
     os.system('rm ear.dat')
-    os.system('rm kypars.dat')
-    os.system('rm kyagn_fluxs.dat')
+    os.system('rm relpars.dat')
+    os.system('rm relagn_fluxs.dat')
     
     for i in range(len(ear) - 1):
         flx[i] = flxs[i] #photons/s/cm^s
@@ -53,8 +53,8 @@ parinfo_ragn = ('M Msol 10 1 1 1e10 1e10 -1',
                 'z "" 0 0 0 1 1 -1')
 
  
-xspec.AllModels.addPyMod(kyagn, parinfo_ragn, 'add')
-print('kyagnsed model loaded succefully')
-print('in pyXSPEC call as kyagn')
+xspec.AllModels.addPyMod(relagn, parinfo_ragn, 'add')
+print('relagnsed model loaded succefully')
+print('in pyXSPEC call as relagn')
     
 

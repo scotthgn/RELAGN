@@ -123,7 +123,7 @@ def interp_spec(Ei, Emod, flxs):
 The relagnsed class
 """
 
-class kyagnsed:
+class relagnsed:
     
     Emin = 1e-4
     Emax = 1e4

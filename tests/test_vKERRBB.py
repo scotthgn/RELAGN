@@ -19,7 +19,7 @@ import astropy.units as u
 import sys
 sys.path.append('/home/wljw75/Documents/phd/KYAGNSED/src/')
 
-from kyagnsed import kyagnsed
+from relagn import relagnsed
 
 
 #Params for testing
@@ -41,7 +41,7 @@ rep = 0
 z = 0
 
 #Calculating my model components
-myagn = kyagnsed(M, D, log_mdot, a, cos_inc, kte_h, kte_w, gamma_h, gamma_w,
+myagn = relagnsed(M, D, log_mdot, a, cos_inc, kte_h, kte_w, gamma_h, gamma_w,
                   r_h, r_w, l_rout, fcol, hmax, rep, z)
 
 myagn.set_cgs()

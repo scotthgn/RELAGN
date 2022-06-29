@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import sys
 sys.path.append('/home/wljw75/Documents/phd/KYAGNSED/src')
 
-from kyagnsed import kyagnsed
+from relagn import relagnsed
 
 
 #Params for testing
@@ -101,7 +101,7 @@ def interp_spec(Ei, Emod, flxs):
 
 nEs = np.array([5000, 4000, 3000, 2000, 1000, 500])
 for i in range(len(nEs)):
-    agn = kyagnsed(M, D, log_mdot, a, cos_inc, kte_h, kte_w, gamma_h,
+    agn = relagnsed(M, D, log_mdot, a, cos_inc, kte_h, kte_w, gamma_h,
                    gamma_w, r_h, r_w, l_rout, fcol, hmax, rep, z)
     
     agn.new_ear(np.geomspace(1e-4, 1e4, nEs[i]))

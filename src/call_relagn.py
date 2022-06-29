@@ -12,14 +12,14 @@ in xspec...
 """
 
 import numpy as np
-from kyagnsed import kyagnsed
+from relagn import relagnsed
 import os
 import matplotlib.pyplot as plt
 
 
 wdir = os.getcwd()
 
-params = np.loadtxt(wdir + '/kypars.dat')
+params = np.loadtxt(wdir + '/relpars.dat')
 M = params[0]
 dist = params[1]
 log_mdot = params[2]
@@ -37,7 +37,7 @@ h_max = params[13]
 reprocess = params[14]
 z = params[15] #fixing redshift at 0 for now - change later
 
-ragn = kyagnsed(M, dist, log_mdot, a, cos_inc, abs(kTe_hot), abs(kTe_warm), 
+ragn = relagnsed(M, dist, log_mdot, a, cos_inc, abs(kTe_hot), abs(kTe_warm), 
                  gamma_hot, abs(gamma_warm), r_hot, r_warm, log_rout, fcol, h_max, reprocess, z)
 
 ear = np.loadtxt(wdir + '/ear.dat')
@@ -142,4 +142,4 @@ for i in range(len(Emid)):
 if any(np.isnan(flx_spec)):
     print(params)
 
-np.savetxt('kyagn_fluxs.dat', flx_spec)
+np.savetxt('relagn_fluxs.dat', flx_spec)

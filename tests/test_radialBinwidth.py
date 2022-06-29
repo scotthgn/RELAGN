@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import sys
 sys.path.append('/home/wljw75/Documents/phd/KYAGNSED/src')
 
-from kyagnsed import kyagnsed
+from relagn import relagnsed
 
 
 #Params for testing
@@ -42,7 +42,7 @@ z = 0
 
 dr_dexs = np.array([120, 110, 100, 90, 80, 70, 60]) #dx to test with
 for i in range(len(dr_dexs)):
-    agn = kyagnsed(M, D, log_mdot, a, cos_inc, kte_h, kte_w, gamma_h,
+    agn = relagnsed(M, D, log_mdot, a, cos_inc, kte_h, kte_w, gamma_h,
                    gamma_w, r_h, r_w, l_rout, fcol, hmax, rep, z)
     
     agn._change_rBins(dr_dexs[i])
