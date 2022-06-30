@@ -18,15 +18,12 @@ import numpy as np
 from scipy.integrate import quad
 import xspec
 import warnings
-from threading import Thread
 
 import astropy.constants as const
 import astropy.units as u
 
 from pyNTHCOMP import donthcomp
 
-
-xspec.Xset.chatter = 0 #Stop xspec printing every time it gets called...
 #Stop all the run-time warnings (we know why they happen - doesn't affect the output!)
 warnings.filterwarnings('ignore') 
 
@@ -278,8 +275,6 @@ class relagnsed:
         self.reprocess = reprocess
         
 
-        #xspec.AllData.dummyrsp(self.Emin, self.Emax, self.numE)
-
     
     
     
@@ -436,7 +431,7 @@ class relagnsed:
         return Lnus/(4*np.pi*dist**2 * (1+self.z))
     
     
-    def new_ear(self, ear):
+    def new_ear(self, new_es):
         """
         Defines new energy grid if necessary
 
@@ -446,8 +441,11 @@ class relagnsed:
             New energy grid - units : keV.
 
         """
-        self.Ebins = ear     
-        self.Egrid = self.Ebins + 0.5 * (self.Ebins[1:] - self.Ebin[:-1])
+        
+        self.Ebins = new_es
+        self.dEs = self.Ebins[1:] - self.Ebins[:-1]
+        
+        self.Egrid = self.Ebins[:-1] + 0.5 * self.dEs
         self.nu_grid = (self.Egrid * u.keV).to(u.Hz,
                                 equivalencies=u.spectral()).value
         self.nu_obs = self.nu_grid/(1 + self.z) #Observers frame
@@ -456,7 +454,6 @@ class relagnsed:
         self.Emin = min(self.Egrid)
         self.Emax = max(self.Egrid)
         self.numE = len(self.Egrid)
-        xspec.AllData.dummyrsp(self.Emin, self.Emax, self.numE)
         
         self._hot_specShape()
         
@@ -1190,9 +1187,7 @@ class relagnsed:
                 Lnu_r = (L_kev * u.keV/u.s/u.keV).to(u.W/u.Hz, equivalencies=u.spectral()).value
                 Lnu_r /= (self.cosinc/0.5) #kyconv includes inclination factor
                                            #However, since spherical geometry
-                                           #This needs to be removed!!
-                
-                xspec.AllModels.clear()
+                                           #This needs to be removed!
             
             else:
                 #If out of bounds for tables do non-relativistic
@@ -1241,7 +1236,7 @@ class relagnsed:
         Total spectrum from the relativistic components
         
         """
-
+        
         #Checking if components already exist in order to avoid multiple calculations
         if hasattr(self, 'Lnu_disc_rel'):
             Ld = self.Lnu_disc_rel
@@ -1437,32 +1432,11 @@ def call_relagn(ear, params):
 
     flx_spec = np.array([])
     for i in range(len(Emid)):
-        fnew= interp_spec(Emid[i], Emod, flxs_all)
+        fnew= interp_spec(Emid[i], Emod, flxs)
         flx_spec = np.append(flx_spec, [dEs[i] * fnew])
     
     return flx_spec
         
-
-
-
-class relThread(Thread):
-    
-    def __init__(self, args):
-        Thread.__init__(self)
-        self.args = args
-        self.flxs = None
-    
-    def run(self):
-        es = self.args[0]
-        pars = self.args[1]
-        
-        self.flxs = call_relagn(es, pars)
-
-
-
-
-
-
 
 
 
@@ -1489,17 +1463,27 @@ def get_relagnParinfo():
 
 
 
-def relagn(ear, params, flx):
-    #th = relThread(args=(ear, params))
-    #th.start()
-    #th.join()
+def relagn_t(ear, params, flx):
     fs = call_relagn(ear, params)
-    #fs = th.flxs    
-    #print(fs)
+    #fs = list(fs)
+    print(len(fs), len(ear))
     for j in range(len(ear) - 1):
         flx[j] = fs[j]
+        #print(flx[j])
 
-"""
 
 
+
+if __name__ == '__main__':
     
+    parinf = get_relagnParinfo()
+    xspec.AllModels.addPyMod(relagn_t, parinf, 'add')
+    xspec.AllData.dummyrsp(1e-3, 1e3, 500)
+    xspec.Model('relagn_t')
+    
+    
+    xspec.Plot.device='/xw'
+    xspec.Plot.iplot('eemo')
+
+
+""" 
