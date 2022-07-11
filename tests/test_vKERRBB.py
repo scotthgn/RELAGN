@@ -17,7 +17,7 @@ import xspec
 import astropy.units as u
 
 import sys
-sys.path.append('/home/wljw75/Documents/phd/KYAGNSED/src/')
+sys.path.append('/home/wljw75/Documents/phd/RELAGN/src/')
 
 from relagn import relagnsed
 
@@ -50,7 +50,7 @@ myagn.set_flux()
 nus = myagn.nu_obs
 fs = myagn.totSpec_rel()
 fs_n = myagn.totSpec_std() #for comparison!
-
+print(fs)
 #Now douing kerrbb
 xspec.Xset.chatter = 0 
 xspec.AllData.dummyrsp(myagn.Emin, myagn.Emax, myagn.numE)

@@ -17,7 +17,7 @@ import xspec
 import astropy.units as u
 
 import sys
-sys.path.append('/home/wljw75/Documents/phd/KYAGNSED/src/')
+sys.path.append('/home/wljw75/Documents/phd/RELAGN/src/')
 
 from relagn import relagnsed
 
