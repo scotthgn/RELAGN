@@ -14,7 +14,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import sys
-sys.path.append('/home/wljw75/Documents/phd/KYAGNSED/src')
+sys.path.append('/home/wljw75/Documents/phd/RELAGN/src')
 
 from relagn import relagnsed
 

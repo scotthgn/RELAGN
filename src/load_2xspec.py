@@ -5,8 +5,8 @@ Created on Thu Jun 30 15:58:37 2022
 
 @author: wljw75
 
-Contains the functions necessary for loading relagn to xspec. Includes both 
-relativistic and non-relativistc functions
+Loads relagn into PyXSPEC. Should only ever be run as a script, by importing
+into an interacive python session!
 """
 
 import numpy as np
