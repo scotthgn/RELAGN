@@ -3,7 +3,7 @@
 """
 Created on Thu Mar 10 16:50:31 2022
 
-@author: wljw75
+@author: Scott Hagen
 """
 """
 Calculate AGNSED (Kubota & Done 2018) with relativistic corrections at each 
@@ -580,7 +580,7 @@ class relagnsed:
         R = r * self.Rg
         H = self.hmax * self.Rg
         
-        Frep = (0.5 * self.Lx)/(4*np.pi * (R**2 + H**2))
+        Frep = (self.Lx)/(4*np.pi * (R**2 + H**2))
         Frep *= H/np.sqrt(R**2 + H**2)
         Frep *= (1 - self.A) 
         
