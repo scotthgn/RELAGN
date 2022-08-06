@@ -742,7 +742,7 @@ class relagnsed:
         
         #Annulus luminosity - normalised as black body
         #NOTE! kyconv integrates over the annulus within the code, 
-        #hence why we are NOT multiplying with 4pi r dr - as this would 
+        #hence why we are NOT multiplying with pi r dr - as this would 
         #effectively overestimate the actual normalisation post convolution.
         #The final result is still the same as this - it's just done somewhere else...
         #kyconv also deal with the inclination - so no cos(inc) correction factor needs to be applied
@@ -874,7 +874,7 @@ class relagnsed:
                 #If out of bounds for tables do non-relativistic
                 #This is fine - as beyon 1000Rg Gr effects tiny!
                 #Since no kyconv - we now apply the normalisation here instead
-                Lnu_r = Lnu_ann * 2*np.pi * 2 * rmid * dr_bin   * self.cosinc/0.5
+                Lnu_r = Lnu_ann * 2*np.pi*2 * rmid * dr_bin   * self.cosinc/0.5
             
 
             if i == 0:
