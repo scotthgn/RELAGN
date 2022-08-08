@@ -120,7 +120,7 @@ c      kyconv
        implicit none
        integer nn, ifl
        real es(0:nn), ph(nn), param(*)
-       real ph_ann(nn)
+       real ph_ann(nn), phw_ann(nn), phh_ann(nn) !disc, warm, hot
        double precision M, mdot
        double precision rout, rw, rh, rsg, risco
        double precision astar, hmax
@@ -142,20 +142,24 @@ c      kyconv
        real kpar(12), ntwpar(5), nthpar(5)
        real kpherr(nn), ntwpherr(nn), nthpherr(nn)
 
+       double precision normw_ann, normh_ann
+       double precision ntw_out, nth_out
+
        logical return_disc, return_warm, return_hot
        integer i, n
+
        
 c      Constants
        pi = 4.0*atan(1.0)
-       G = 6.67d-8 * 1.99d33 !Grav const. cm^-3 s^-1 Msol^-1
-       c = 3.0d10            !Speed of light. cm/s
-       h = 6.62d-27          !Plank const. erg/s
-       sigma_sb = 5.67d-5    !Stefan-Boltzmann const. erg s^-1 cm^-2 K^-4
-       mp = 1.67d-24         !Proton mass. g
-       kB = 1.38d-16         !Boltzmann const. erg/K
+       G = 6.67d-8 * 1.99d33   !Grav const. cm^-3 s^-1 Msol^-1
+       c = 3.0d10              !Speed of light. cm/s
+       h = 6.62617d-27         !Plank const. erg s
+       sigma_sb = 5.670367d-5  !Stefan-Boltzmann const. erg s^-1 cm^-2 K^-4
+       mp = 1.67d-24           !Proton mass. g
+       kB = 1.38d-16           !Boltzmann const. erg/K
 
 c      Unit conversion constants
-       kkev = 1.6048d7          !K/keV
+       kkev = 1.16048d7          !K/keV
        kevhz = 2.417965d17      !Hz/keV
 
        dr_dex = 30              !Radial resolution, Nbins per decade (ish)
@@ -183,8 +187,8 @@ c      Getting accretion attributes
 
        Ledd = 1.39d38 * M       !erg/s
        Mdot_edd = Ledd/(eta * c**2) !g/s
-       Rg = (G*M)/c**2 !cm
-       write(*,*) Mdot_edd * mdot
+       Rg = (G*M)/c**2          !cm
+       
        dist = dist*1.0d6        !pc
        dist = dist*3.086d18    !cm
        
@@ -205,8 +209,8 @@ c      These are set seperately for each annulus!!!!!
 c      Now warm nthcomp params
        ntwpar(1) = gammaw
        ntwpar(2) = kTw
-       ntwpar(4) = 0 !BB assumed from each annulus
-       ntwpar(5) = 0 !Redshift - dealt with within this script
+       ntwpar(4) = 0.0 !BB assumed from each annulus
+       ntwpar(5) = 0.0 !Redshift - dealt with within this script
 
 c      And finally hot nthomp params
        nthpar(1) = gammah
@@ -333,8 +337,76 @@ c            Adding into main photon array
           end do
        end if
 
-          
 
+c-----------------------------------------------------------------------
+c      Section for calculating the warm Compton region
+c-----------------------------------------------------------------------
+       if (return_warm) then
+          nrw = (log10(rw) - log10(rh)) * dr_dex !nr bins in region
+          nrw = ceiling(nrw)    !round up to nearest integer
+          dlog_rw = (log10(rw) - log10(rh))/nrw !actual bin size
+
+          do i=1, int(nrw), 1
+             rmid = 10**(log10(rh)+float(i-1)*dlog_rw + dlog_rw/2.0)
+             dr = 10**(log10(rmid) + dlog_rw/2.0)
+             dr = dr - 10**(log10(rmid) - dlog_rw/2.0)
+
+             if ((rmid+dr/2.0+dr).gt.rw) then !Ensuring bin within region
+                dr = rw - 10**(log10(rmid) - dlog_rw/2.0)
+             end if
+
+             tr = nttemp(rmid, M, mdot, Mdot_edd, astar, risco) !Temp. K
+             ntwpar(3) = tr/kkev !setting seed temp to disc annulus temp (keV)
+
+c            Calling nthcomp
+             call donthcomp(es, nn, ntwpar, ifl, phw_ann, ntwpherr) !photons/s/cm^s/
+
+             normw_ann = sigma_sb*tr**4.0
+             normw_ann = normw_ann * 4.0*Rg**2.0 !erg/s/, emission from annulus
+             normw_ann = normw_ann/(4.0*pi*dist**2.0) !erg/s/cm^2/
+             
+c            Finding total flux output from nthcomp
+             ntw_out = 0.0
+             do n=1, nn, 1
+                ntw_out = ntw_out + phw_ann(n)*es(n)*kevhz*h !photons/s/cm^2/Hz * Hz * keV
+             end do
+
+c            Now applying normalisation
+             do n=1, nn, 1
+                if (ntw_out.eq.0) then
+                   phw_ann(n) = 0.0
+                else
+                   phw_ann(n) = phw_ann(n) * (normw_ann/ntw_out) !photons/s/cm^2
+                end if
+             end do
+             
+c            Applying kyconv
+             if ((rmid+dr/2.0).lt.1.0d3) then
+                kpar(3) = rmid - dr/2.0
+                kpar(5) = rmid + dr/2.0
+                kpar(8) = rmid
+                call kyconv(es, nn, kpar, ifl, phw_ann, kpherr)
+             else
+                phw_ann = phw_ann * pi*rmid*dr*(cos_inc/0.5)
+             end if
+
+c            Adding to total output array
+             do n=1, nn, 1
+                if(i.eq.1) then
+                   if (return_disc) then 
+                      ph(n) = ph(n) + phw_ann(n)
+                   else
+                      ph(n) = phw_ann(n) !if no disc we start from scratch!
+                   end if
+                else
+                   ph(n) = ph(n) + phw_ann(n)
+                end if
+             end do     
+          end do
+       end if
+
+
+       
        end
              
 
@@ -456,7 +528,7 @@ c      Function to calculate Novikov-Thorne temperature at radius r
 
        pi = 4.0*atan(1.0)
        G = 6.67d-8 * 1.99d33 !cm^3 s^-1 Msol^-1
-       sigma_sb = 5.67d-5 !erg cm^-2 s^-1 K^-4
+       sigma_sb = 5.670367d-5 !erg cm^-2 s^-1 K^-4
        c = 3.0d10 !cm/s
 
        Rg = (G*M)/c**2 !cm
