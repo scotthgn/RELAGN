@@ -50,11 +50,12 @@ fh = ragn.Lnu_hot_rel
 ftot_nr = ragn.totSpec_std()
 fdnr = ragn.Lnu_disc_norel
 fwnr = ragn.Lnu_warm_norel
+fhnr = ragn.Lnu_hot_norel
 
 #plt.loglog(Es, Es**2 * fd)
 #plt.loglog(Es, Es**2 * fdnr)
-plt.loglog(Es, Es**2 * (fd + fw))
-plt.xlim(1e-4, 10)
+plt.loglog(Es, Es**2 * ftot)
+plt.xlim(1e-4, 1e4)
 plt.ylim(1e-2, 3)
 plt.show()
 

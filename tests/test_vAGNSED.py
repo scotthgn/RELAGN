@@ -23,17 +23,17 @@ from relagn import relagnsed
 
 
 #Params for testing
-M = 10
+M = 1e5
 D = 1
-log_mdot = -1.41721
+log_mdot = -1
 a = 0
-cos_inc = 0.9
+cos_inc = 0.5
 kte_h =100
 kte_w = 0.2
-gamma_h = 2.07052
-gamma_w = 2.74571
-r_h = 450
-r_w = 500
+gamma_h = 1.7
+gamma_w = 2.7
+r_h = 10
+r_w = 20
 l_rout = -1
 fcol = 1
 hmax = 10
@@ -87,7 +87,7 @@ ax1.loglog(nu_agn, nu_agn*fs_agn, color='gray', ls='-.', label='XSPEC (agnsed)')
 
 ax1.legend(frameon=False)
 
-ax1.set_ylim(1e-15, 5e-13)
+ax1.set_ylim(1e-12, 5e-8)
 #ax1.set_ylim(1e-10, 1e-7)
 ax1.set_xlim(3e15, 1e21)
 

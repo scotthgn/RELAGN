@@ -37,7 +37,8 @@ c      Goodnes knows why!? I miss python :(
        logical parchange, echange
        save oldpar
 
-       integer i, n !Iteration indeces
+       integer i, n             !Iteration indeces
+       double precision zfac
 
 c      ear: Energy array
 c      ne: Size of energy array
@@ -69,12 +70,13 @@ c      checking if parameters have changed
        
 c      Checking if we need to change energy grid
 c      The default extends from 1e-4 to 1e3 keV
+       zfac = (1.0 + param(15))
        if (ear(0).eq.0.0) then
           newemin=ear(1) - (ear(2)-ear(1))/10.0
        else
-          newemin=min(1.0e-4, ear(0))
+          newemin=min(1.0e-4, ear(0)*zfac)
        end if
-       newemax=max(1.0e3, ear(ne))
+       newemax=max(1.0e3, ear(ne)*zfac)
 
        if ((enew(0).ne.newemin).or.(enew(Nnew).ne.newemax)) then
           echange=.true.
@@ -90,7 +92,21 @@ c      Calculating new energy grid if necessary
           end do
        end if
 
-       call calc_spec(enew, Nnew, param, ifl, ph)
+c      Call model if parameters or energy grid have changed
+       if (parchange.or.echange) then
+          
+          call calc_spec(enew, Nnew, param, ifl, ph)
+
+          !Redshift correct energy bins
+          do n=1, Nnew, 1
+             enew(n) = enew(n)/zfac
+             ph(n) = ph(n)/zfac
+          end do
+
+          do i=1, npars, 1
+             oldpar(i)=param(i)
+          end do
+       end if
 
 c      Re-bin onto original xspec grid
        call inibin(Nnew, enew, ne, ear, istart, iend, fstart, fend, 0)
@@ -120,24 +136,26 @@ c      kyconv
        implicit none
        integer nn, ifl
        real es(0:nn), ph(nn), param(*)
-       real ph_ann(nn), phw_ann(nn), phh_ann(nn) !disc, warm, hot
+       real ph_ann(nn), phw_ann(nn), phh_ann(nn), phh_shape(nn) !disc, warm, hot
        double precision M, mdot
        double precision rout, rw, rh, rsg, risco
        double precision astar, hmax
-       double precision fcol, kTh, kTw
+       double precision fcol, fcol_r, kTh, kTw
        double precision gammah, gammaw
        double precision cos_inc, dist
 
        double precision pi, G, c, h, sigma_sb,  mp, kB
        double precision eta, Ledd, Mdot_edd, Rg
-       double precision dr_dex, nrd, nrw, nrh
-       double precision dlog_rd, dlog_rw, dlog_rh
+       double precision dr_dex, nrd, nrw, nrh, nrseed
+       double precision dlog_rd, dlog_rw, dlog_rh, dlog_rseed
        double precision rmid, dr
        double precision kkev, kevhz
        double precision dflux, en, dnphot, tr
-
-       double precision calc_risco, calc_rsg
+       double precision calc_risco, calc_rsg, calc_fcol
        double precision efficiency, nttemp
+       double precision lphseed, fcov, theta0
+       double precision lseed_ann, lseed_cann, ldiss_ann
+       double precision tseed_h, ysb
 
        real kpar(12), ntwpar(5), nthpar(5)
        real kpherr(nn), ntwpherr(nn), nthpherr(nn)
@@ -184,7 +202,7 @@ c      Getting accretion attributes
        risco = calc_risco(astar)
        eta = efficiency(risco)
        rsg = calc_rsg(M, mdot)
-
+       
        Ledd = 1.39d38 * M       !erg/s
        Mdot_edd = Ledd/(eta * c**2) !g/s
        Rg = (G*M)/c**2          !cm
@@ -215,8 +233,8 @@ c      Now warm nthcomp params
 c      And finally hot nthomp params
        nthpar(1) = gammah
        nthpar(2) = kTh
-       nthpar(4) = 0
-       nthpar(5) = 0
+       nthpar(4) = 0.0
+       nthpar(5) = 0.0
 
        
 
@@ -234,6 +252,7 @@ c      Checking switching parameters
        if ((param(10).lt.0.0).or.(param(10).lt.risco)) then !Checking inner disc radius
           rh = risco
           return_hot=.false.
+          call xwrite('r_hot < risco!!! Setting r_hot = risco', 10)
        else
           rh = dble(param(10))
        end if
@@ -242,6 +261,7 @@ c      Checking switching parameters
           rw = risco
           return_warm=.false.
           return_hot=.false.
+          call xwrite('r_warm < risco!! Setting rw = risco', 10)
        else
           rw = dble(param(11))
        end if
@@ -263,18 +283,23 @@ c      Checking switching parameters
        end if
 
 
-       if (rw.lt.rh) then
-          call xwrite('r_warm < r_hot!!! Re-setting r_w = r_h', 10)
+       if (rw.le.rh) then
+          call xwrite('r_warm <= r_hot!!! Re-setting r_w = r_h', 10)
           rw = rh
           return_warm=.false.
        end if
 
-       if (rw.gt.rout) then
-          call xwrite('r_warm > r_out!!! Re-setting r_w = r_out', 10)
+       if (rw.ge.rout) then
+          call xwrite('r_warm >= r_out!!! Re-setting r_w = r_out', 10)
           rw = rout
           return_disc=.false.
        end if
 
+
+       if (hmax.lt.rh) then
+          call xwrite('hmax < r_hot!!! Re-setting hmax = r_hot', 10)
+          hmax = rh
+       end if
 
 c-----------------------------------------------------------------------
 c      Section for calculating the disc region
@@ -293,6 +318,14 @@ c-----------------------------------------------------------------------
              end if
 
              tr = nttemp(rmid, M, mdot, Mdot_edd, astar, risco) !Temp. K
+c            Checking and applying colour temp correction
+             if (fcol.lt.0.0) then
+                fcol_r = calc_fcol(tr)
+             else
+                fcol_r = fcol
+             end if
+             tr = tr * fcol_r
+             
 c            Calculating BB emission over each energy
              do n=1, nn, 1
                 en = dble(log10(es(n-1)) + log10(es(n)))
@@ -303,7 +336,7 @@ c            Calculating BB emission over each energy
                    dflux = (pi*2.0 * h * (en*kevhz)**3)/(c**2)
                    dflux = dflux * 1/(exp((h*en*kevhz)/(kB*tr)) - 1)
                    dflux = dflux * 4.0 *  Rg**2 !Lum in erg/s/Hz
-                   !dflux = dflux * pi*rmid*dr
+                   dflux = dflux/(fcol_r**4.0) !applying colour correction to norm
 c                  Note, not applyin pi*r*dr as kyconv deals with this
 c                  kyconv also does cos(inc)/0.5
 
@@ -364,11 +397,12 @@ c            Calling nthcomp
              normw_ann = sigma_sb*tr**4.0
              normw_ann = normw_ann * 4.0*Rg**2.0 !erg/s/, emission from annulus
              normw_ann = normw_ann/(4.0*pi*dist**2.0) !erg/s/cm^2/
+c            Again leaving off pi*r*dr * cosi/0.5 as this done in kyconv!!!
              
 c            Finding total flux output from nthcomp
              ntw_out = 0.0
              do n=1, nn, 1
-                ntw_out = ntw_out + phw_ann(n)*es(n)*kevhz*h !photons/s/cm^2/Hz * Hz * keV
+                ntw_out = ntw_out + phw_ann(n)*es(n)*kevhz*h !erg/s/cm^2
              end do
 
 c            Now applying normalisation
@@ -406,7 +440,129 @@ c            Adding to total output array
        end if
 
 
-       
+
+c-----------------------------------------------------------------------
+c      Section for calculating hot compton region (ie corona)
+c-----------------------------------------------------------------------
+       if (return_hot) then
+c         First finding the total seed photon luminosity/flux
+c         Integrated flux from entire disc seen by corona
+          nrseed = (log10(rout) - log10(rh)) * dr_dex
+          nrseed = ceiling(nrseed) !round up to nearest integer
+          dlog_rseed = (log10(rout) - log10(rh))/nrseed
+
+          lphseed = 0.0
+          do i=1, int(nrseed), 1
+             rmid = 10**(log10(rh)+float(i-1)*dlog_rseed+dlog_rseed/2.0)
+             dr = 10**(log10(rmid) + dlog_rseed/2.0)
+             dr = dr - 10**(log10(rmid) - dlog_rseed/2.0)
+
+             if ((rmid+dr/2.0+dr).gt.rout) then !Ensuring bin within region
+                dr = rout - 10**(log10(rmid) - dlog_rseed/2.0)
+             end if
+
+             if (hmax.le.rmid) then
+                theta0 = asin(hmax/rmid)
+                fcov = theta0 - 0.5*sin(2.0*theta0) !corona covering fraction seen from rmid
+             else
+                fcov = 0.0
+             end if
+
+             tr = nttemp(rmid, M, mdot, Mdot_edd, astar, risco) !Temp. K
+
+             lseed_ann = sigma_sb * tr**4.0 !erg/s/cm^2
+             lseed_ann = lseed_ann * 4*pi*rmid*dr*Rg**2 * (fcov/pi) !erg/s
+             lseed_ann = lseed_ann/(4*pi * dist**2) !erg/s/cm^2
+
+             lphseed = lphseed + lseed_ann !total seed photon flux erg/s/cm^2
+          end do
+
+c         Now finding seed photon temperature
+c         Assumed to be ~inner disc temp
+          tseed_h = nttemp(rh, M, mdot, Mdot_edd, astar, risco) !K
+          if (rh.lt.rw) then
+             ysb = (gammaw*(4.0/9.0))**(-4.5) !Compton y-param for warm region
+             tseed_h = (tseed_h/kkev) * exp(ysb) !in keV
+          else
+             if (fcol.lt.0) then !applying colour temp if disc region
+                fcol_r = calc_fcol(tseed_h)
+             else
+                fcol_r = fcol
+             end if
+             tseed_h = (tseed_h/kkev) * fcol_r !keV
+          end if
+
+
+          
+          !calling nthcomp now, since intrinsic shape does not change!!!
+          nthpar(3) = tseed_h
+          call donthcomp(es, nn, nthpar, ifl, phh_shape, nthpherr) 
+          !total flux output from nthcom
+          nth_out = 0.0
+          do n=1, nn, 1
+             nth_out = nth_out + phh_shape(n)*es(n)*kevhz*h !erg/s/cm^2
+          end do
+
+c         Now calculating emission from each coronal annulus
+          nrh = (log10(rh) - log10(risco)) * dr_dex
+          nrh = ceiling(nrh)    !round up to integer
+          dlog_rh = (log10(rh) - log10(risco))/nrh !actual spacing
+
+          do i=1, int(nrh), 1
+             rmid = 10**(log10(risco)+float(i-1)*dlog_rh+dlog_rh/2.0)
+             dr = 10**(log10(rmid) + dlog_rh/2.0)
+             dr = dr - 10**(log10(rmid) - dlog_rh/2.0)
+
+             if ((rmid+dr/2.0+dr).gt.rh) then !Ensuring bin within region
+                dr = rh - 10**(log10(rmid) - dlog_rh/2.0)
+             end if
+
+             tr = nttemp(rmid, M, mdot, Mdot_edd, astar, risco) !K
+             ldiss_ann = sigma_sb * tr**4
+             ldiss_ann = ldiss_ann * 4 * Rg**2 !erg/s
+             ldiss_ann = ldiss_ann/(4*pi * dist**2) !erg/s/cm^2
+
+             !Assuming equall amounts of emission from each coronal annulus
+             !Need to renorm here for kyconv
+             lseed_cann = lphseed/(pi*rmid*dr * nrh)
+
+             normh_ann = ldiss_ann + lseed_cann !erg/s/cm^2
+
+             !Now applying normalisation
+             do n=1, nn, 1
+                if (nth_out.eq.0) then
+                   phh_ann(n) = 0.0
+                else
+                   phh_ann(n) = phh_shape(n) * (normh_ann/nth_out) !photons/s/cm^2
+                end if
+             end do
+
+c            Applying kyconv
+             if ((rmid+dr/2.0).lt.1.0d3) then
+                kpar(3) = rmid - dr/2.0
+                kpar(5) = rmid + dr/2.0
+                kpar(8) = rmid
+                call kyconv(es, nn, kpar, ifl, phh_ann, kpherr)
+                phh_ann = phh_ann/(2.0*cos_inc) !not disc so removing cosi dependence
+             else
+                phh_ann = phh_ann * pi*rmid*dr
+             end if
+
+c            Adding to total output array
+             do n=1, nn, 1
+                if (i.eq.1) then
+                   if ((return_disc).or.(return_warm)) then
+                      ph(n) = ph(n) + phh_ann(n)
+                   else
+                      ph(n) = phh_ann(n) !if no disc or warm comp start from scratch
+                   end if
+                else
+                   ph(n) = ph(n) + phh_ann(n)
+                end if
+             end do
+          end do
+       end if
+      
        end
              
 
@@ -540,4 +696,27 @@ c      Function to calculate Novikov-Thorne temperature at radius r
 
        return
        end
-       
+
+
+       function calc_fcol(T)
+c      Calculates colour temperature correction following Done et al. 2012
+
+       implicit none
+       double precision T, calc_fcol, kkev !T in K
+
+       kkev = 1.16048d7          !K/keV
+
+       if (T.gt.1.0d5) then
+          !Here follow eqn 1 in Done et al 2012
+          T = T/kkev            !Converting to keV
+          calc_fcol = (72.0/T)**(1.0/9.0)
+       else if ((T.lt.1.0d5).and.(T.gt.3.0d4)) then
+          !Now follows eqn 2 in Done et al 2012
+          calc_fcol = (T/3.0d4)**(0.82)
+       else
+          calc_fcol = 1.0
+       end if
+
+       return
+       end
+        
