@@ -296,8 +296,8 @@ c      Checking switching parameters
        end if
 
 
-       if (hmax.lt.rh) then
-          call xwrite('hmax < r_hot!!! Re-setting hmax = r_hot', 10)
+       if (hmax.gt.rh) then
+          call xwrite('hmax > r_hot!!! Re-setting hmax = r_hot', 10)
           hmax = rh
        end if
 
@@ -333,14 +333,14 @@ c            Calculating BB emission over each energy
                 en = 10**en
                 
                 if (en.lt.30.0*tr) then
-                   dflux = (pi*2.0 * h * (en*kevhz)**3)/(c**2)
-                   dflux = dflux * 1/(exp((h*en*kevhz)/(kB*tr)) - 1)
-                   dflux = dflux * 4.0 *  Rg**2 !Lum in erg/s/Hz
+                   dflux = (pi*2.0 * h * (en*kevhz)**3.0)/(c**2.0)
+                   dflux = dflux * 1/(exp((h*en*kevhz)/(kB*tr)) - 1.0)
+                   dflux = dflux * 4.0 *  Rg**2.0 !Lum in erg/s/Hz
                    dflux = dflux/(fcol_r**4.0) !applying colour correction to norm
 c                  Note, not applyin pi*r*dr as kyconv deals with this
 c                  kyconv also does cos(inc)/0.5
 
-                   dflux = dflux/(4.0*pi*dist**2) !erg/s/cm^2/Hz
+                   dflux = dflux/(4.0*pi*dist**2.0) !erg/s/cm^2/Hz
                    
                    ph_ann(n) = dflux/(h*kevhz*en) !photons/s/cm^2/Hz
                    ph_ann(n) = ph_ann(n)*kevhz*(es(n)-es(n-1)) !photons/s/cm^2                
@@ -471,8 +471,8 @@ c         Integrated flux from entire disc seen by corona
              tr = nttemp(rmid, M, mdot, Mdot_edd, astar, risco) !Temp. K
 
              lseed_ann = sigma_sb * tr**4.0 !erg/s/cm^2
-             lseed_ann = lseed_ann * 4*pi*rmid*dr*Rg**2 * (fcov/pi) !erg/s
-             lseed_ann = lseed_ann/(4*pi * dist**2) !erg/s/cm^2
+             lseed_ann = lseed_ann * 4.0*pi*rmid*dr*Rg**2.0 * (fcov/pi) !erg/s
+             lseed_ann = lseed_ann/(4*pi * dist**2.0) !erg/s/cm^2
 
              lphseed = lphseed + lseed_ann !total seed photon flux erg/s/cm^2
           end do
@@ -518,9 +518,9 @@ c         Now calculating emission from each coronal annulus
              end if
 
              tr = nttemp(rmid, M, mdot, Mdot_edd, astar, risco) !K
-             ldiss_ann = sigma_sb * tr**4
-             ldiss_ann = ldiss_ann * 4 * Rg**2 !erg/s
-             ldiss_ann = ldiss_ann/(4*pi * dist**2) !erg/s/cm^2
+             ldiss_ann = sigma_sb * tr**4.0
+             ldiss_ann = ldiss_ann * 4.0 * Rg**2.0 !erg/s
+             ldiss_ann = ldiss_ann/(4.0*pi * dist**2.0) !erg/s/cm^2
 
              !Assuming equall amounts of emission from each coronal annulus
              !Need to renorm here for kyconv
@@ -687,7 +687,7 @@ c      Function to calculate Novikov-Thorne temperature at radius r
        sigma_sb = 5.670367d-5 !erg cm^-2 s^-1 K^-4
        c = 3.0d10 !cm/s
 
-       Rg = (G*M)/c**2 !cm
+       Rg = (G*M)/c**2.0 !cm
        Rt = NTpars(r, astar, risc)
 
        nttemp = (3.0*G*M*mdot*Mdot_edd)/(8*pi*sigma_sb*(r*Rg)**3) !K^4
