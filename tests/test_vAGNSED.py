@@ -23,17 +23,17 @@ from relagn import relagnsed
 
 
 #Params for testing
-M = 10
-D = 1
-log_mdot = -1.41721
+M = 2e8
+D = 200
+log_mdot = -1.27096
 a = 0
 cos_inc = 0.9
 kte_h =100
-kte_w = 0.2
-gamma_h = 2.07052
-gamma_w = 2.74571
-r_h = 450
-r_w = 500
+kte_w = 0.248287
+gamma_h = 1.97568
+gamma_w = 2.65004
+r_h = 24.4264
+r_w = 1e3
 l_rout = -1
 fcol = 1
 hmax = 10
@@ -45,10 +45,11 @@ z = 0
 myagn = relagnsed(M, D, log_mdot, a, cos_inc, kte_h, kte_w, gamma_h, gamma_w,
                   r_h, r_w, l_rout, fcol, hmax, rep, z)
 
-myagn.set_cgs() #sets cgs units
+myagn.set_counts() #sets cgs units
 myagn.set_flux()
 
 nus = myagn.nu_obs
+Es = myagn.E_obs
 ftot = myagn.totSpec_std() 
 
 fd = myagn.Lnu_disc_norel
@@ -61,35 +62,36 @@ xspec.Xset.chatter = 0
 xspec.AllData.dummyrsp(myagn.Emin, myagn.Emax, myagn.numE)
 
 agnpars = (M, D, log_mdot, a, cos_inc, kte_h, 0.2, gamma_h, gamma_w, r_h,
-           r_w, l_rout, hmax, rep, z)
+           500, l_rout, hmax, rep, z)
 
 mx1 = xspec.Model('agnsed', setPars=agnpars)
 mx1.setPars({7:str(kte_w) + ' 0.01 0.1 0.1 2 2'})
+mx1.setPars({11:str(r_w) + ' 1 6 6 1e3 1e3'})
 
 xspec.Plot('model')
-es = np.array(xspec.Plot.x())
+es_agn = np.array(xspec.Plot.x())
 ph = np.array(xspec.Plot.model())
 
-fs_agn = ph * es
-fs_agn = (fs_agn * u.keV/u.s/u.keV).to(u.erg/u.s/u.Hz, equivalencies=u.spectral()).value
+#fs_agn = ph * es
+#fs_agn = (fs_agn * u.keV/u.s/u.keV).to(u.erg/u.s/u.Hz, equivalencies=u.spectral()).value
 
-nu_agn = (es * u.keV).to(u.Hz, equivalencies=u.spectral())
+#nu_agn = (es * u.keV).to(u.Hz, equivalencies=u.spectral())
 
 fig = plt.figure(figsize=(10, 8))
 ax1 = fig.add_subplot(111)
 
-ax1.loglog(nus, nus*fd, color='red', ls='-.', label='Disc')
-ax1.loglog(nus, nus*fw, color='green', ls='-.', label='Warm Comp.')
-ax1.loglog(nus, nus*fh, color='blue', ls='-.', label='Hot Comp.')
-ax1.loglog(nus, nus*ftot, color='k', label='Total')
+ax1.loglog(Es, Es**2 * fd, color='red', ls='-.', label='Disc')
+ax1.loglog(Es, Es**2 * fw, color='green', ls='-.', label='Warm Comp.')
+ax1.loglog(Es, Es**2 * fh, color='blue', ls='-.', label='Hot Comp.')
+ax1.loglog(Es, Es**2 * ftot, color='k', label='Total')
 
-ax1.loglog(nu_agn, nu_agn*fs_agn, color='gray', ls='-.', label='XSPEC (agnsed)')
+ax1.loglog(es_agn, es_agn**2 * ph, color='gray', ls='-.', label='XSPEC (agnsed)')
 
 ax1.legend(frameon=False)
 
-ax1.set_ylim(1e-15, 5e-13)
+ax1.set_ylim(1e-3, 0.1)
 #ax1.set_ylim(1e-10, 1e-7)
-ax1.set_xlim(3e15, 1e21)
+ax1.set_xlim(1e-4, 1e4)
 
 ax1.set_xlabel(r'Frequency, $\nu$   (Hz)')
 ax1.set_ylabel(r'$\nu F_{\nu}$   (ergs cm$^{-2}$ s$^{-1}$)')

@@ -3,7 +3,7 @@
 """
 Created on Thu Mar 10 16:50:31 2022
 
-@author: wljw75
+@author: Scott Hagen
 """
 """
 Calculate AGNSED (Kubota & Done 2018) with relativistic corrections at each 
@@ -580,7 +580,7 @@ class relagnsed:
         R = r * self.Rg
         H = self.hmax * self.Rg
         
-        Frep = (0.5 * self.Lx)/(4*np.pi * (R**2 + H**2))
+        Frep = (self.Lx)/(4*np.pi * (R**2 + H**2))
         Frep *= H/np.sqrt(R**2 + H**2)
         Frep *= (1 - self.A) 
         
@@ -742,7 +742,7 @@ class relagnsed:
         
         #Annulus luminosity - normalised as black body
         #NOTE! kyconv integrates over the annulus within the code, 
-        #hence why we are NOT multiplying with 4pi r dr - as this would 
+        #hence why we are NOT multiplying with pi r dr - as this would 
         #effectively overestimate the actual normalisation post convolution.
         #The final result is still the same as this - it's just done somewhere else...
         #kyconv also deal with the inclination - so no cos(inc) correction factor needs to be applied
@@ -874,7 +874,7 @@ class relagnsed:
                 #If out of bounds for tables do non-relativistic
                 #This is fine - as beyon 1000Rg Gr effects tiny!
                 #Since no kyconv - we now apply the normalisation here instead
-                Lnu_r = Lnu_ann * 2*np.pi * 2 * rmid * dr_bin   * self.cosinc/0.5
+                Lnu_r = Lnu_ann * 2*np.pi*2 * rmid * dr_bin   * self.cosinc/0.5
             
 
             if i == 0:
