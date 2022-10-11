@@ -193,6 +193,7 @@ c      Read parameters
        kTw = dble(abs(param(7)))
        gammah = dble(param(8))
        gammaw = dble(abs(param(9)))
+       rh = dble(param(10))
        rw = dble(param(11))
        fcol = dble(param(13))
        hmax = dble(param(14))
@@ -249,15 +250,16 @@ c      Checking switching parameters
           rout = dble(10**param(12))
        end if
 
-       if ((param(10).lt.0.0).or.(param(10).lt.risco)) then !Checking inner disc radius
+       
+       if ((rh.lt.0.0).or.(rh.le.risco)) then !Checking inner disc radius
           rh = risco
           return_hot=.false.
-          call xwrite('r_hot < risco!!! Setting r_hot = risco', 10)
+          call xwrite('r_hot <= risco!!! Setting r_hot = risco', 10)
        else
           rh = dble(param(10))
        end if
 
-       if ((param(11).lt.0.0).or.(param(11).lt.risco)) then !Checking warm region
+       if ((rw.lt.0.0).or.(rw.le.risco)) then !Checking warm region
           rw = risco
           return_warm=.false.
           return_hot=.false.
