@@ -63,13 +63,13 @@ Model Parameters
   
 **Par 3. &ensp;  $\log \dot{m}$** </br>
   &emsp; &emsp; &#9656; **Units:** $\log \dot{M}/\dot{M}\_{\mathrm{Edd}}$ </br>
-  &emsp; &emsp; &#9656; **Descripton:** Log Mass-accretion rate, scaled by the Eddington mass accretion-rate. </br>
-  &emsp; &emsp; (i.e $\log \dot{m} = -1$ would imply $\dot{M} = 0.1 \dot{M}\_{\mathrm{Edd}}$)
+  &emsp; &emsp; &#9656; **Descripton:** Log Mass-accretion rate, scaled by the Eddington mass accretion-rate. 
+  (i.e $\log \dot{m} = -1$ would imply $\dot{M} = 0.1 \dot{M}\_{\mathrm{Edd}}$)
  
  **Par 4. &ensp; $a$** </br>
   &emsp; &emsp; &#9656; **Units:** Dimensionless </br>
-  &emsp; &emsp; &#9656; **Description:** Black hole spin parameter. 0 implies non-spinning, while 1 is maximally spinning (with prograde rotation). </br>
-  &emsp; &emsp; Note, the code will limit you to max 0.998 - This is the theoretical maximum assuming the presence of a disc
+  &emsp; &emsp; &#9656; **Description:** Black hole spin parameter. 0 implies non-spinning, while 1 is maximally spinning (with prograde rotation). 
+  Note, the code will limit you to max 0.998 - This is the theoretical maximum assuming the presence of a disc
 
  **Par 5. &ensp; $\cos(i)$** </br>
   &emsp; &emsp; &#9656; **Units:** Dimensionless </br>
@@ -78,8 +78,8 @@ Model Parameters
  
  **Par 6. &ensp; $kT\_{e, h}$** </br>
   &emsp; &emsp; &#9656; **Units:** keV </br>
-  &emsp; &emsp; &#9656; **Description:** Electron temperature for the hot Comptonising corona. </br>
-  &emsp; &emsp; This sets the high-energy roll-over for the hot Comptonisation region
+  &emsp; &emsp; &#9656; **Description:** Electron temperature for the hot Comptonising corona. 
+  This sets the high-energy roll-over for the hot Comptonisation region
  
  **Par 7. &ensp; $kT\_{e, w}$** </br>
   &emsp; &emsp; &#9656; **Units** keV </br>
@@ -95,23 +95,23 @@ Model Parameters
  
  **Par 10. &ensp; $r_{h}$** </br>
   &emsp; &emsp; &#9656; **Units:** $R\_{G}$ ( $R\_{G} = GM/c\^{2}$ so technically dimensionless) </br>
-  &emsp; &emsp; &#9656; **Description:** Outer radius of the hot Corona. </br>
-  &emsp; &emsp; If this is negative, then the code will set it to the innermost stable cirbular orbit, $r\_{\mathrm{isco}}$
+  &emsp; &emsp; &#9656; **Description:** Outer radius of the hot Corona. 
+  If this is negative, then the code will set it to the innermost stable cirbular orbit, $r\_{\mathrm{isco}}$
  
  **Par 11. &ensp; $r_{w}$** </br>
   &emsp; &emsp; &#9656; **Units:** $R\_{G}$ </br>
-  &emsp; &emsp; &#9656; **Description:** Outer radius of the warm Comptonisation region. </br>
-  &emsp; &emsp; If this is negative, then the code will set it to $r\_{\mathrm{isco}}$
+  &emsp; &emsp; &#9656; **Description:** Outer radius of the warm Comptonisation region. 
+  If this is negative, then the code will set it to $r\_{\mathrm{isco}}$
  
  **Par 12. &ensp; $\log r\_{\mathrm{out}}$** </br>
   &emsp; &emsp; &#9656; **Units:** $R\_{G}$ </br>
-  &emsp; &emsp; &#9656; **Description:** Log of the outermost disc radius. </br>
-  &emsp; &emsp; If this is negative, then the code will use the self-gravity radius from Laor &amp; Netzer (1989)
+  &emsp; &emsp; &#9656; **Description:** Log of the outermost disc radius. 
+  If this is negative, then the code will use the self-gravity radius from Laor &amp; Netzer (1989)
  
  **Par 13. &ensp; $f\_{\mathrm{col}}$** </br>
   &emsp; &emsp; &#9656; **Units:** Dimensionless </br>
-  &emsp; &emsp; &#9656; **Description:** Colour-temperature correction to be applied to the standard **outer* disc. </br>
-  &emsp; &emsp; If this is negative, then the code follows the relation in Done et al. (2012). Otherwise treated as a constant correction
+  &emsp; &emsp; &#9656; **Description:** Colour-temperature correction to be applied to the standard **outer* disc. 
+  If this is negative, then the code follows the relation in Done et al. (2012). Otherwise treated as a constant correction
  
  **Par 14. &ensp; $h\_{\mathrm{max}}$** </br>
   &emsp; &emsp; &#9656; **Units:** $R\_{G}$ </br>
