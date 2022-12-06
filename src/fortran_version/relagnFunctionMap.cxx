@@ -7,12 +7,13 @@
 #include    "relagnFunctionMap.h"
 
 #include    <XSFunctions/Utilities/XSModelFunction.h>
+#include    <XSFunctions/Utilities/XSCall.h>
 
 void 
 createrelagnFunctionMap()
 {
 
 
-	XSFunctionMap["relagn"]   = new XSCall<xsf77Call>(relagn_);
+	XSModelFunction::addFunctionPointer( "relagn",     new XSCall<xsf77Call>(relagn_) );
 
 }

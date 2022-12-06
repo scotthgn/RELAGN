@@ -9,9 +9,7 @@
 
 #include    <XSFunctions/Utilities/funcType.h>
 
-class    XSModelFunction;
-
-extern    ModelFunctionMap  XSFunctionMap;
+class    XSCallBase;
 
 void  createrelagnFunctionMap();
 

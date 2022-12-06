@@ -7,6 +7,7 @@
 #include <XSUser/UserInterface/xstcl.h>
 
 #include  "relagnFunctionMap.h"
+#include  <XSFunctions/Utilities/XSCall.h>
 #include  <XSFunctions/Utilities/XSModelFunction.h>
 
 extern "C" int Relagn_Init(Tcl_Interp* tclInterp);
@@ -23,9 +24,9 @@ int Relagn_SafeInit(Tcl_Interp* tclInterp)
         char PACKAGE[] = "relagn";
         char VERSION[] = "1.0";
         Tcl_PkgProvide(tclInterp, PACKAGE, VERSION);
-        createrelagnFunctionMap();
         XSModelFunction::updateComponentList
               ("/Users/astro-guest/Documents/phd/model_codes/RELAGN/src/fortran_version/lmod_relagn.dat");
+        createrelagnFunctionMap();
         return TCL_OK;
 
 }

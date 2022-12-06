@@ -4,10 +4,10 @@
 Created on Thu Mar 10 16:50:31 2022
 
 @author: Scott Hagen
-"""
-"""
-Calculate AGNSED (Kubota & Done 2018) with relativistic corrections at each 
-annulus using KYCONV (Dovciak, Karas & Yaqoob 2004)
+
+Relativistic versions of AGNSED (RELAGN) and QSOSED (RELQSO) (Kubota & Done 2018).
+The relativistic corrections are calculated using the convolution code
+KYCONV (Dovciak, Karas & Yaqoob 2004)
 
 For the Comptonised region of the disc we use the pyNTHCOMP routine, adapted
 from the XSPEC model NTHCOMP (Zdziarski, Johnson & Magdziarz, 1996; Zycki,
@@ -37,7 +37,6 @@ sigma_T = const.sigma_T.value #Thompson cross section, m^2
 sigma_sb = const.sigma_sb.value #Stefan-Boltzmann const, W m^-2 K^-4
 m_p = const.m_p.value #Proton mass, kg
 k_B = const.k_B.value #Boltzmann const, J K^-1
-
 
 
 """
@@ -119,7 +118,7 @@ def interp_spec(Ei, Emod, flxs):
 The relagnsed class
 """
 
-class relagnsed:
+class relagn:
     
     Emin = 1e-4
     Emax = 1e4
@@ -127,29 +126,28 @@ class relagnsed:
     mu = 0.55 #mean particle mass - fixed at solar abundances
     A = 0.3 #Disc albedo = fixed at 0.3 for now
     
-    dr_dex = 30 #grid spacing - N points per decade
+    dr_dex = 50 #grid spacing - N points per decade
     
     as_cgs = False #This flags whether to use SI or cgs - False => SI
     as_counts = False #Flags wheter to return as photon counts
     as_flux = False #This flags whether to return luminosity or flux
     
     def __init__(self,
-                 M,
-                 dist,
-                 log_mdot,
-                 a,
-                 cos_inc,
-                 kTe_hot,
-                 kTe_warm,
-                 gamma_hot,
-                 gamma_warm,
-                 r_hot,
-                 r_warm,
-                 log_rout,
-                 fcol,
-                 h_max,
-                 reprocess,
-                 z):
+                 M=1e5,
+                 dist=1,
+                 log_mdot=-1,
+                 a=0,
+                 cos_inc=0.5,
+                 kTe_hot=100,
+                 kTe_warm=0.2,
+                 gamma_hot=1.7,
+                 gamma_warm=2.7,
+                 r_hot=10,
+                 r_warm=20,
+                 log_rout=-1,
+                 fcol=1,
+                 h_max=10,
+                 z=0):
         
         """
         Initiates relagnsed object
@@ -188,9 +186,6 @@ class relagnsed:
             If +ve then assumes this to be constant correction over entire disc region
         h_max : float
             Scale height of hot Compton region - units : Rg
-        reprocess : int
-            IF 1 then include re-processing
-            IF 0 then dont
         z : float
             Redshift
         """
@@ -234,7 +229,6 @@ class relagnsed:
         
         if r_hot == -1:
             self.r_h = self.risco
-            reprocess = 0 #No reprocessing if no corona...
         
         self._check_rw()
         self._check_risco()
@@ -265,24 +259,20 @@ class relagnsed:
         
         #calculating coronal luminosity IF it exists
         if self.r_h != self.risco:
-            self.reprocess = 0
             self._hot_specShape()
-            self.Lx = self.hotCorona_lumin()
-        
-        else:
-            self.Lx = 0
+
             
-        self.reprocess = reprocess
         
 
     
     
     
-    """
-    Performing checks on certain parameters. To ensure that we are within both
-    physical limits (i.e -0.998 <= a <= 0.998) AND that we dont wonder off
-    acceptable values of kyconv/kerrbb (i.e 3 <= inc <= 85 deg)
-    """
+    ###########################################################################
+    #---- Performing checks on certain parameters. 
+    #     To ensure that we are within both physical limits 
+    #     (i.e -0.998 <= a <= 0.998) AND that we dont wonder off acceptable 
+    #     values of kyconv (i.e 3 <= inc <= 85 deg)
+    ###########################################################################
     
     def _check_spin(self):
         if self.a >= -0.998 and self.a <= 0.998:
@@ -335,41 +325,19 @@ class relagnsed:
             print('WARNING! hmax > r_h ------- Setting hmax = r_h')
             self.hmax = self.r_h
     
-    
-    
-    def _change_rBins(self, new_drdex):
-        """
-        JUST FOR TESTING PURPOSES!!!! Allows changing of radial bin-width
-        in an object oriented manner - makes testing easier...
-
-        Parameters
-        ----------
-        new_drdex : float
-            New number of steps per decade.
-
-        """
-        self.dr_dex = new_drdex
-        self.dlog_r = 1/self.dr_dex
-        
-        self.logr_ad_bins = self._make_rbins(np.log10(self.r_w), np.log10(self.r_out))
-        self.logr_wc_bins = self._make_rbins(np.log10(self.r_h), np.log10(self.r_w))
-        self.logr_hc_bins = self._make_rbins(np.log10(self.risco), np.log10(self.r_h))
-        
-        #calculating coronal luminosity
-        if self.r_h != self.risco:
-            self.reprocess = 0
-            self._hot_specShape()
-            self.Lx = self.hotCorona_lumin()
 
         
     
     
-    """
-    Section for dealing with units. Essentially just methods to change the unit
-    flag - and then methods to convert calculated spectrum to desired units.
-    Also includes method for changing the energy grid to something other
-    than the default
-    """
+    ###########################################################################
+    #---- Section for dealing with units. 
+    #     Essentially just methods to change the unit flag, which sets the 
+    #     spectral output units - and then methods to convert calculated spectrum 
+    #     to desired units.
+    #     Also includes method for changing the energy grid to something other
+    #     than the default
+    ###########################################################################
+    
           
     def set_cgs(self):
         """
@@ -431,42 +399,14 @@ class relagnsed:
         return Lnus/(4*np.pi*dist**2 * (1+self.z))
     
     
-    def new_ear(self, new_es):
-        """
-        Defines new energy grid if necessary
-
-        Parameters
-        ----------
-        ear : 1D-array
-            New energy grid - units : keV.
-
-        """
-        
-        self.Ebins = new_es
-        self.dEs = self.Ebins[1:] - self.Ebins[:-1]
-        
-        self.Egrid = self.Ebins[:-1] + 0.5 * self.dEs
-        self.nu_grid = (self.Egrid * u.keV).to(u.Hz,
-                                equivalencies=u.spectral()).value
-        self.nu_obs = self.nu_grid/(1 + self.z) #Observers frame
-        self.E_obs = self.Egrid/(1 + self.z)
-        
-        self.Emin = min(self.Egrid)
-        self.Emax = max(self.Egrid)
-        self.numE = len(self.Egrid)
-        
-        if self.r_h != self.risco:
-            self._hot_specShape()
  
         
-        
     
     
-    
-    """
-    Calculating disc properties
-    i.e r_isco, L_edd, NT temp, etc
-    """
+    ###########################################################################
+    #---- Calculating disc properties
+    #     i.e r_isco, L_edd, NT temp, etc
+    ###########################################################################
     
     def _calc_Ledd(self):
         """
@@ -571,34 +511,6 @@ class relagnsed:
 
         return T4
     
-    
-    def calc_Trep(self, r):
-        """
-        Calculates re-processed temperature
-
-        """
-        R = r * self.Rg
-        H = self.hmax * self.Rg
-        
-        Frep = (self.Lx)/(4*np.pi * (R**2 + H**2))
-        Frep *= H/np.sqrt(R**2 + H**2)
-        Frep *= (1 - self.A) 
-        
-        T4rep = Frep/sigma_sb
-        return T4rep
-    
-    
-    def calc_Ttot(self, r):
-        """
-        Caclculates total temperature
-        Depends on re-processing flag!
-        """
-        if self.reprocess == 1:
-            T4tot = self.calc_Tnt(r) + self.calc_Trep(r)
-        else:
-            T4tot = self.calc_Tnt(r)
-        
-        return T4tot
         
     
     def calc_fcol(self, Tm):
@@ -646,10 +558,12 @@ class relagnsed:
     
     
     
-    """
-    Creating the radial bins to use when calculating each model component
-    """
-    def _make_rbins(self, logr_in, logr_out):
+    ###########################################################################
+    #---- Creating/Updating binning
+    ###########################################################################
+
+
+    def _make_rbins(self, logr_in, logr_out, dlog_r=None):
         """
         Creates an array of radial bin edges, with spacing defined by dr_dex
         Calculates the bin edges from r_out and down to r_in. IF the bin
@@ -670,10 +584,16 @@ class relagnsed:
             Radial bin edges for section - units : Rg.
 
         """
+        if dlog_r is not None:
+            dlr = dlog_r
+        else:
+            dlr = self.dlog_r
+        
+        
         i = logr_out
         logr_bins = np.array([np.float64(logr_out)]) 
         while i > logr_in:
-            r_next_edge = i - self.dlog_r
+            r_next_edge = i - dlr
             logr_bins = np.insert(logr_bins, 0, r_next_edge)
             i = r_next_edge
 
@@ -692,15 +612,64 @@ class relagnsed:
         
     
     
+    def new_ear(self, new_es):
+        """
+        Defines new energy grid if necessary
+
+        Parameters
+        ----------
+        ear : 1D-array
+            New energy grid - units : keV.
+
+        """
         
+        self.Ebins = new_es
+        self.dEs = self.Ebins[1:] - self.Ebins[:-1]
+        
+        self.Egrid = self.Ebins[:-1] + 0.5 * self.dEs
+        self.nu_grid = (self.Egrid * u.keV).to(u.Hz,
+                                equivalencies=u.spectral()).value
+        self.nu_obs = self.nu_grid/(1 + self.z) #Observers frame
+        self.E_obs = self.Egrid/(1 + self.z)
+        
+        self.Emin = min(self.Egrid)
+        self.Emax = max(self.Egrid)
+        self.numE = len(self.Egrid)
+        
+        if self.r_h != self.risco:
+            self._hot_specShape()
+    
+    
+    
+    def change_rBins(self, new_drdex):
+        """
+        JUST FOR TESTING PURPOSES!!!! Allows changing of radial bin-width
+        in an object oriented manner - makes testing easier...
+
+        Parameters
+        ----------
+        new_drdex : float
+            New number of steps per decade.
+
+        """
+        self.dr_dex = new_drdex
+        self.dlog_r = 1/self.dr_dex
+        
+        self.logr_ad_bins = self._make_rbins(np.log10(self.r_w), np.log10(self.r_out))
+        self.logr_wc_bins = self._make_rbins(np.log10(self.r_h), np.log10(self.r_w))
+        self.logr_hc_bins = self._make_rbins(np.log10(self.risco), np.log10(self.r_h))
+        
+        #calculating coronal spec shape
+        if self.r_h != self.risco:
+            self._hot_specShape()
     
     
     
     
     
-    """
-    Section to calculate annulus spectra
-    """
+    ###########################################################################
+    #---- Annular emission from disc and warm Compton region
+    ###########################################################################
     
     def disc_annuli(self, r, dr):
         """
@@ -720,7 +689,7 @@ class relagnsed:
             Disc black-body at annulus - units : W/Hz
 
         """
-        T4_ann = self.calc_Ttot(r)
+        T4_ann = self.calc_Tnt(r)
         Tann = T4_ann**(1/4)
         if self.fcol < 0:
             fcol_r = self.calc_fcol(Tann)
@@ -782,7 +751,7 @@ class relagnsed:
             Warm Comptonised spectrum at annulus - units : W/Hz
         """
         
-        T4_ann = self.calc_Ttot(r)
+        T4_ann = self.calc_Tnt(r)
         Tann = T4_ann**(1/4)
         
         kTann = k_B * Tann
@@ -808,13 +777,9 @@ class relagnsed:
     
     
     
-    
-    
-    """
-    Section for calculating total spectrum for each disc component
-    So spectrum for disc component and warm compton component
-    Including methods for both with and without kyconv
-    """
+    ###########################################################################
+    #---- Total emission from disc/warm Compton region
+    ###########################################################################
     
     
     def do_relDiscSpec(self):
@@ -1003,9 +968,10 @@ class relagnsed:
         
         
     
-    """
-    Section for calculating the hot coronal emission
-    """
+    ###########################################################################
+    #---- Hot Comptonisatin region (corona)
+    ###########################################################################
+    
     def seed_tempHot(self):
         """
         Calculated seed photon temperature for the hot compton region.
@@ -1017,7 +983,7 @@ class relagnsed:
             Seed photon temperature for hot compton - units : keV
 
         """
-        T4_edge = self.calc_Ttot(self.r_h) #inner disc T in K
+        T4_edge = self.calc_Tnt(self.r_h) #inner disc T in K
         Tedge = T4_edge**(1/4)
         
         kT_edge = k_B * Tedge #units J
@@ -1347,5 +1313,138 @@ class relagnsed:
         self.Lnu_warm_norel = Lw
         self.Lnu_hot_norel = Lh
         return self.Lnu_tot_norel
+
+
+
+
+class relqso(relagn):
     
+    
+    def __init__(self,
+                 M=1e5,
+                 dist=1,
+                 log_mdot=-1,
+                 a=0,
+                 cos_inc=0.5,
+                 fcol=1,
+                 z=0):
+        
+        #Read params
+        self.M = M
+        self.D, self.d = dist, (dist * u.Mpc).to(u.cm).value
+        self.mdot = 10**(log_mdot)
+        self.a = np.float64(a)
+        self.inc = np.arccos(cos_inc)
+        self.cosinc = cos_inc
+        self.fcol = fcol
+        self.z = z
+        
+        
+        #Performing checks
+        self._check_spin()
+        self._check_inc()
+        self._check_mdot()
+        
+        #Calculating disc params 
+        self._calc_risco()
+        self._calc_r_selfGravity()
+        self._calc_Ledd()
+        self._calc_efficiency()
+        
+        #physical conversion factors
+        self.Mdot_edd = self.L_edd/(self.eta * c**2)
+        self.Rg = (G * self.M)/(c**2)
+        self._calc_Dl()
+        
+        #Calculating disc regions
+        self.dlog_r = 1/self.dr_dex
+        self._set_rhot()
+        self.r_w = 2*self.r_h
+        self.r_out = self.r_sg
+        
+        if self.r_w > self.r_sg:
+            self.r_w = self.r_sg
+        
+        
+        #Setting other parameters
+        self.kTe_h = 100 #keV
+        self.kTe_w = 0.2 #keV
+        self.gamma_w = 2.5
+        self.hmax = min(10.0, self.r_h)
+        self._set_gammah()
+        
+        
+        #Setting up grids
+        self.Ebins = np.geomspace(self.Emin, self.Emax, self.numE)
+        self.dEs = self.Ebins[1:] - self.Ebins[:-1]
+
+        self.Egrid = self.Ebins[:-1] + 0.5 * self.dEs
+        self.nu_grid = (self.Egrid * u.keV).to(u.Hz,
+                                equivalencies=u.spectral()).value
+        self.nu_obs = self.nu_grid/(1 + self.z) #Observers frame
+        self.E_obs = self.Egrid/(1 + self.z)
+        
+        #Creating radal grid over disc and warm compton regions
+        self.logr_ad_bins = self._make_rbins(np.log10(self.r_w), np.log10(self.r_out))
+        self.logr_wc_bins = self._make_rbins(np.log10(self.r_h), np.log10(self.r_w))
+        self.logr_hc_bins = self._make_rbins(np.log10(self.risco), np.log10(self.r_h))
+            
+        #Shape of hot corona (rest frame)
+        self._hot_specShape()
+        
+        
+    
+    def _check_mdot(self):
+        """
+        Checks is mdot within bounds.
+        If log mdot < -1.65 then too small (The ENTIRE flow will be the corona..)
+        If log mdot > 0.5 then the model is probably invalid (this is NOT a 
+        super Eddington model...)
+        """
+        
+        lmdot = np.log10(self.mdot)
+        if lmdot >= -1.65 and lmdot <= 0.5:
+            pass
+        else:
+            raise ValueError('mdot is out of bounds! \n'
+                             'Require: -1.65 <= log mdot <= 0.5')
+    
+    
+    def _set_rhot(self):
+        """
+        Finds r_hot based on the condition L_diss = 0.02 Ledd, in the frame
+        of the black hole
+        Uses a refined radial grid, s.t we have more confidence in answer
+        
+        """
+
+        dlr = 1/1000 #Somewhat refined grid for this calculation
+        log_rall = self._make_rbins(np.log10(self.risco), np.log10(self.r_sg),
+                                        dlog_r=dlr)
+        Ldiss = 0.0
+        i = 0
+        while Ldiss < 0.02 * self.L_edd and i < len(log_rall) - 1:
+            rmid = 10**(log_rall[i] + dlr/2)            
+            dr = 10**(log_rall[i + 1]) - 10**(log_rall[i])
+            
+            Tnt4 = self.calc_Tnt(rmid)
+            Ldiss += sigma_sb*Tnt4 * 4*np.pi*rmid*dr * self.Rg**2
+            i += 1
+            
+        self.r_h = rmid
+
+    
+    def _set_gammah(self):
+        """
+        Calculates the spectral index of the hot Compton region
+
+        """
+        self.hotCorona_lumin()
+        self.gamma_h = (7/3) * (self.Ldiss/self.Lseed)**(-0.1)
+        
+        
+    
+
+
+
 
