@@ -120,6 +120,70 @@ The relagnsed class
 
 class relagn:
     
+    """
+    relagn - relativistic SED model for AGN
+    Assumes a radially stratified flow consisting of:
+        - An outer standard accretion disc
+        - A warm Comptonisation region (where the disc is having a bad day)
+        - A hot Comptonisation region (i.e inner X-ray Corona)
+    
+    For more details on the model - see Hagen & Done (in prep)
+    
+    
+    Parameters
+    ----------
+    M : float
+        Black hole mass - units : Msol
+        
+    dist : float
+        Co-Moving Distance - units : Mpc
+        
+    log_mdot : float
+        log mass accretion rate - units : Eddington
+        
+    a : float
+        Dimensionless Black Hole spin - units : Dimensionless
+        
+    cos_inc : float
+        cos inclination angle
+        
+    kTe_hot : float
+        Electron temp for hot Compton region - units : keV
+        
+    kTe_warm : float
+        Electron temp for warm Compton region - units : keV
+        
+    gamma_hot : float
+        Spectral index for hot Compton region
+        
+    gamma_warm : float
+        Spectral index for warm Compton region
+        
+    r_hot : float
+        Outer radius of hot Compton region - units : Rg
+        
+    r_warm : float
+        Outer radius of warm Compton region - units : Rg
+        
+    log_rout : float
+        log of outer disc radius - units : Rg
+        WARNING! Max value is r_out = 1e3 - set by kyconv
+        
+    fcol : float
+        Colour temperature correction as described in Done et al. (2012)
+        If -ve then follows equation 1 and 2 in Done et al. (2012).
+        If +ve then assumes this to be constant correction over entire disc region
+        
+    h_max : float
+        Scale height of hot Compton region - units : Rg
+        
+    z : float
+        Redshift
+    
+    
+    """
+    
+    
     Emin = 1e-4
     Emax = 1e4
     numE = 2000
@@ -128,8 +192,8 @@ class relagn:
     
     dr_dex = 50 #grid spacing - N points per decade
     
-    as_cgs = False #This flags whether to use SI or cgs - False => SI
-    as_counts = False #Flags wheter to return as photon counts
+    default_units = 'cgs'
+    units = 'cgs'
     as_flux = False #This flags whether to return luminosity or flux
     
     def __init__(self,
@@ -148,47 +212,6 @@ class relagn:
                  fcol=1,
                  h_max=10,
                  z=0):
-        
-        """
-        Initiates relagnsed object
-        
-        Parameters
-        ----------
-        M : float
-            Black hole mass - units : Msol
-        dist : float
-            Co-Moving Distance - units : Mpc
-        log_mdot : float
-            log mass accretion rate - units : Eddington
-        a : float
-            Dimensionless Black Hole spin - +ve for prograde rotation,
-            -ve for retrograde 
-        cos_inc : float
-            cos inclination angle
-        kTe_hot : float
-            Electron temp for hot Compton region - units : keV
-        kTe_warm : float
-            Electron temp for warm Compton region - units : keV
-        gamma_hot : float
-            Spectral index for hot Compton region
-        gamma_warm : float
-            Spectral index for warm Compton region
-        r_hot : float
-            Outer radius of hot Compton region - units : Rg
-        r_warm : float
-            Outer radius of warm Compton region - units : Rg
-        log_rout : float
-            log of outer disc radius - units : Rg
-            WARNING! Max value is r_out = 1e3 - set by kyconv
-        fcol : float
-            Colour temperature correction as described in Done et al. (2012)
-            If -ve then follows equation 1 and 2 in Done et al. (2012).
-            If +ve then assumes this to be constant correction over entire disc region
-        h_max : float
-            Scale height of hot Compton region - units : Rg
-        z : float
-            Redshift
-        """
 
         #Read params
         self.M = M
@@ -247,8 +270,12 @@ class relagn:
         self.Egrid = self.Ebins[:-1] + 0.5 * self.dEs
         self.nu_grid = (self.Egrid * u.keV).to(u.Hz,
                                 equivalencies=u.spectral()).value
+        self.wave_grid = (self.Egrid * u.keV).to(u.AA,
+                                equivalencies=u.spectral()).value
+        
         self.nu_obs = self.nu_grid/(1 + self.z) #Observers frame
         self.E_obs = self.Egrid/(1 + self.z)
+        self.wave_obs = self.wave_grid * (1+self.z)
         
         #Creating radal grid over disc and warm compton regions
         #using spacing of dr_dex
@@ -338,68 +365,136 @@ class relagn:
     #     than the default
     ###########################################################################
     
-          
-    def set_cgs(self):
-        """
-        Changes output spectra to cgs units
-        All outputs will then be in flux of ergs/s/cm^2/Hz
-        
-        If SI units then outputs in luminosity: W/Hz
-        """
-        self.as_cgs = True
-        self.as_counts = False
     
-    def set_counts(self):
+    def set_units(self, new_unit='cgs'):
         """
-        Changes output spectra to photons/s/keV
+        Re-sets default units. ONLY affects attributes extracted through the
+        getter methods
+        
+        Note, the only difference between setting cgs vs counts is in spectra
+        Any integrated luminosities (e.g. Lbol, Ledd) will be given in 
+        erg/s IF counts is  set
+
+        Parameters
+        ----------
+        new_unit : {'cgs','cgs_wave', 'SI', 'counts'}, optional
+            The default unit to use. The default is 'cgs'.
+            NOTE, the main cgs_wave will give spectra in erg/s/Angstrom,
+            while cgs gives in erg/s/Hz
 
         """
-        self.as_cgs = False
-        self.as_counts = True
+        #Checking valid units
+        unit_lst = ['cgs', 'cgs_wave', 'SI', 'SI_wave', 'counts']
+        if new_unit not in unit_lst:
+            print('Invalid Unit!!!')
+            print(f'Valid options are: {unit_lst}')
+            print('Setting as default: cgs')
+            new_unit = 'cgs'
+            
+        self.units = new_unit
     
     def set_flux(self):
         """
-        Changes output spectra from luminosity to flux
+        Sets default output as a flux
+        This ONLY affects spectra! Things like Eddington luminosity, or
+        Bolometric luminosity remain as Luminosity!!
+        
+        Note: This will also take the redshift into account!!
+        
+        /cm^2 IF cgs or counts, /m^2 if SI
 
         """
         self.as_flux = True
-    
-    
-    def _to_cgs(self, Lnus):
-        """
-        Converts input from SI luminosity (W/Hz) to cgs ergs/s
-
-        """
-        return Lnus * 1e7
-    
-    def _to_counts(self, Lnus):
-        """
-        Converts input from SI luminosity (W/Hz) to photons/s/keV
-
-        """
-
-        flxs = (Lnus * u.W/u.Hz).to(u.keV/u.s/u.keV,
-                                                equivalencies=u.spectral()).value
-        phs = flxs/self.Egrid
-        return phs
         
         
-    
-    def _to_flux(self, Lnus):
+    def set_lum(self):
         """
-        Converts luminosity to flux. Either per cm^2 or per m^2, depending
-        on if SI or cgs
+        Sets defualt output as luminosity (only necessary IF previously set
+        as flux)
 
         """
-        if self.as_cgs == True or self.as_counts == True:
-            dist = self.dl
+        self.as_flux = False
+    
+    
+    def _to_newUnit(self, L, as_spec=True):
+        """
+        Sets input luminosity/spectrum to new output units
+
+        Parameters
+        ----------
+        L : float OR array
+            Input lum/spectrum.
+
+        Returns
+        -------
+        Lnew : float OR array
+            In new units.
+        unit : str
+            new unit (in case the currently set unit is not desired)
+        as_spec : bool
+            If True, then input should be W/Hz
+            If false, then input should be W
+
+        """
+        #If spectral density
+        if as_spec:
+            if self.units == 'cgs':
+                Lnew = L*1e7
+                
+            elif self.units == 'counts':
+                Lnew = (L*u.W/u.Hz).to(u.keV/u.s/u.keV,
+                                             equivalencies=u.spectral()).value
+                
+                if np.ndim(L) == 1:
+                    Lnew /= self.Egrid
+                else:
+                    Lnew /= self.Egrid[:, np.newaxis]
+            
+            elif self.units == 'cgs_wave':
+                Lnew = (L*u.W/u.Hz).to(u.erg/u.s/u.AA,
+                                equivalencies=u.spectral_density(self.nu_grid*u.Hz)).value
+            
+            elif self.units == 'SI_wave':
+                Lnew = (L*u.W/u.Hz).to(u.W/u.AA,
+                                equivalencies=u.spectral_density(self.nu_grid*u.Hz)).value 
+            
+            else:
+                Lnew = L
+        
+        #If just a luminosity
         else:
-            dist = self.dl/100
+            if self.units == 'cgs' or self.units == 'counts' or self.units == 'cgs_wave':
+                Lnew = L*1e7
+            else:
+                Lnew = L
         
-        return Lnus/(4*np.pi*dist**2 * (1+self.z))
+        return Lnew
     
     
- 
+    def _to_flux(self, L):
+        """
+        Converts to a flux - takes redshift into accounts    
+
+        Parameters
+        ----------
+        L : float OR array
+            Luminosity to be converted.
+
+        Returns
+        -------
+        f : float OR array
+            Flux seen by observer
+
+        """
+        
+        if self.units == 'cgs' or self.units == 'counts' or self.units == 'cgs_wave':
+            d = self.d #distance in cm
+        else:
+            d = self.d/100 #distance in m
+        
+        f = L/(4*np.pi*d**2 * (1+self.z))
+        return f
+    
         
     
     
@@ -856,7 +951,7 @@ class relagn:
         return Lnu_tot
     
     
-    def do_stdDiscSpec(self):
+    def do_nonrelDiscSpec(self):
         """
         Calculates contribution from entire disc section - for non-relativisitc
         case. Usefull for comparison...
@@ -941,7 +1036,7 @@ class relagn:
         return Lnu_tot
     
     
-    def do_stdWarmCompSpec(self):
+    def do_nonrelWarmCompSpec(self):
         """
         Calculates contribution from entire warm Compton region - for 
         non-relativistic case
@@ -1178,7 +1273,7 @@ class relagn:
         return Lnu_tot
         
     
-    def do_stdHotCompSpec(self):
+    def do_nonrelHotCompSpec(self):
         """
         Calculates spectrum of hot comptonised region - no relativity
 
@@ -1192,132 +1287,224 @@ class relagn:
             
     
     
-    """
-    Return the total sepctrum
-    Sum of all components
+    ###########################################################################
+    #---- Methods for extracting spectra
+    #     This is the recommended way, as it takes into account unit choices
+    #     and region limits
+    ###########################################################################
     
-    Unless de-buggin these functions should be used for all things spectral!
-    Since they also deal with awkwardness when you set strange limits
-    """
-    def totSpec_rel(self):
+    def get_DiscComponent(self, rel=True):
         """
-        Total spectrum from the relativistic components
+        Extracts disc component from SED
         
-        """
-        
-        #Checking if components already exist in order to avoid multiple calculations
-        if hasattr(self, 'Lnu_disc_rel'):
-            Ld = self.Lnu_disc_rel
-        elif self.r_w != self.r_out and len(self.logr_ad_bins) != 1:
-            Ld = self.do_relDiscSpec()
-        else:
-            Ld = np.zeros(len(self.nu_grid))
-        
-        if hasattr(self, 'Lnu_warm_rel'):
-            Lw = self.Lnu_warm_rel
-        elif self.r_w != self.r_h and len(self.logr_wc_bins) != 1:
-            Lw = self.do_relWarmCompSpec()
-        else:
-            Lw = np.zeros(len(self.nu_grid))
-        
-        if hasattr(self, 'Lnu_hot'):
-            Lh = self.Lnu_hot
-        elif self.r_h != self.risco and len(self.logr_hc_bins) != 1:
-            Lh = self.do_relHotCompSpec()
-        else:
-            Lh = np.zeros(len(self.nu_grid))
-        
-        Lnu_tot_rel = Ld + Lw + Lh
- 
-        
-        #Handling unit conversions if necessary
-        if self.as_cgs == True:
-            Lnu_tot_rel = self._to_cgs(Lnu_tot_rel)
-            Ld = self._to_cgs(Ld)
-            Lw = self._to_cgs(Lw)
-            Lh = self._to_cgs(Lh)
-        
-        elif self.as_counts == True:
-            Lnu_tot_rel = self._to_counts(Lnu_tot_rel)
-            Ld = self._to_counts(Ld)
-            Lw = self._to_counts(Lw)
-            Lh = self._to_counts(Lh)
-        
-        
-        if self.as_flux == True:
-            Lnu_tot_rel = self._to_flux(Lnu_tot_rel)
-            Ld = self._to_flux(Ld)
-            Lw = self._to_flux(Lw)
-            Lh = self._to_flux(Lh)
-            
-        
-        self.Lnu_tot_rel = Lnu_tot_rel
-        self.Lnu_disc_rel = Ld
-        self.Lnu_warm_rel = Lw
-        self.Lnu_hot_rel = Lh
-        return self.Lnu_tot_rel
-    
-    
-    def totSpec_std(self):
-        """
-        Total spectrum from the non-relativistic components
+        First checks if disc region exists in current geometry - if not then
+        returns 0 array
+
+        Parameters
+        ----------
+        rel : Bool, optional
+            Flag for whether to include relativistic correction. 
+                - True: Full GR is used
+                - False: Relativistic transfer to the observer is ignored
+                         (i.e non-relativistic SED)
+            The default is True.
+
+        Returns
+        -------
+        Ld : array
+            Disc spectral component in whatever units are currently set.
 
         """
-        #Checking if components already exist in order to avoid multiple calculations
-        if hasattr(self, 'Lnu_disc_norel'):
-            Ld = self.Lnu_disc_norel
+        
+        if rel == True:
+            sfix = 'rel'
+        else:
+            sfix = 'nonrel'
+        
+        #Checking if disc attribute already exists. If not, then checks disc
+        #region exists in current geometry, and if so then calculates spectrum
+        if hasattr(self, f'Lnu_disc_{sfix}'):
+            Ld = getattr(self, f'Lnu_disc_{sfix}')
         elif self.r_w != self.r_out and len(self.logr_ad_bins) != 1:
-            Ld = self.do_stdDiscSpec()
+            Ld_func = getattr(self, f'do_{sfix}DiscSpec')
+            Ld = Ld_func()
         else:
             Ld = np.zeros(len(self.nu_grid))
+            
+        #Converting to currently set units
+        Ld = self._to_newUnit(Ld, as_spec=True)
+        if self.as_flux == True:
+            Ld = self._to_flux(Ld)
         
-        if hasattr(self, 'Lnu_warm_norel'):
-            Lw = self.Lnu_warm_norel
+        return Ld
+
+    
+    def get_WarmComponent(self, rel=True):
+        """
+        Extracts warm Comptonised component from SED
+        
+        First checks if warm Compton region exists in current geometry - if not
+        then returns 0 array
+
+        Parameters
+        ----------
+        rel : Bool, optional
+            Flag for whether to include relativistic correction. 
+                - True: Full GR is used
+                - False: Relativistic transfer to the observer is ignored
+                         (i.e non-relativistic SED)
+            The default is True.
+
+        Returns
+        -------
+        Lw : array
+            Warm Compton spectral component in whatever units are currently set.
+
+        """
+        
+        if rel == True:
+            sfix = 'rel'
+        else:
+            sfix = 'nonrel'
+        
+        #Checking if disc attribute already exists. If not, then checks disc
+        #region exists in current geometry, and if so then calculates spectrum
+        if hasattr(self, f'Lnu_warm_{sfix}'):
+            Lw = getattr(self, f'Lnu_warm_{sfix}')
         elif self.r_w != self.r_h and len(self.logr_wc_bins) != 1:
-            Lw = self.do_stdWarmCompSpec()
+            Lw_func = getattr(self, f'do_{sfix}WarmCompSpec')
+            Lw = Lw_func()
         else:
             Lw = np.zeros(len(self.nu_grid))
+            
+        #Converting to currently set units
+        Lw = self._to_newUnit(Lw, as_spec=True)
+        if self.as_flux == True:
+            Lw = self._to_flux(Lw)
         
-        if hasattr(self, 'Lnu_hot_norel'):
-            Lh = self.Lnu_hot_norel
+        return Lw
+    
+    
+    def get_HotComponent(self, rel=True):
+        """
+        Extracts hot Comptonised component from SED
+        
+        First checks if hot Compton region exists in current geometry - if not
+        then returns 0 array
+
+        Parameters
+        ----------
+        rel : Bool, optional
+            Flag for whether to include relativistic correction. 
+                - True: Full GR is used
+                - False: Relativistic transfer to the observer is ignored
+                         (i.e non-relativistic SED)
+            The default is True.
+
+        Returns
+        -------
+        Lh : array
+            Hot Compton spectral component in whatever units are currently set.
+
+        """
+        
+        if rel == True:
+            sfix = 'rel'
+        else:
+            sfix = 'nonrel'
+        
+        #Checking if disc attribute already exists. If not, then checks disc
+        #region exists in current geometry, and if so then calculates spectrum
+        if hasattr(self, f'Lnu_hot_{sfix}'):
+            Lh = getattr(self, f'Lnu_hot_{sfix}')
         elif self.r_h != self.risco and len(self.logr_hc_bins) != 1:
-            Lh = self.do_stdHotCompSpec()
+            Lh_func = getattr(self, f'do_{sfix}HotCompSpec')
+            Lh = Lh_func()
         else:
             Lh = np.zeros(len(self.nu_grid))
-        
-        Lnu_tot_norel = Ld + Lw + Lh
-        
-        #Handling unit conversions if necessary
-        if self.as_cgs == True:
-            Lnu_tot_norel = self._to_cgs(Lnu_tot_norel)
-            Ld = self._to_cgs(Ld)
-            Lw = self._to_cgs(Lw)
-            Lh = self._to_cgs(Lh)
-        
-        elif self.as_counts == True:
-            Lnu_tot_norel = self._to_counts(Lnu_tot_norel)
-            Ld = self._to_counts(Ld)
-            Lw = self._to_counts(Lw)
-            Lh = self._to_counts(Lh)
             
-        
+        #Converting to currently set units
+        Lh = self._to_newUnit(Lh, as_spec=True)
         if self.as_flux == True:
-            Lnu_tot_norel = self._to_flux(Lnu_tot_norel)
-            Ld = self._to_flux(Ld)
-            Lw = self._to_flux(Lw)
             Lh = self._to_flux(Lh)
-            
         
-        self.Lnu_tot_norel = Lnu_tot_norel
-        self.Lnu_disc_norel = Ld
-        self.Lnu_warm_norel = Lw
-        self.Lnu_hot_norel = Lh
-        return self.Lnu_tot_norel
+        return Lh 
+        
+    
+    
+    
+    def get_totSED(self, rel=True):
+        """
+        Extracts the total SED (i.e Ldisc + Lwarm + Lhot)
+
+        Parameters
+        ----------
+        rel : Bool, optional
+            Flag for whether to include relativistic correction. 
+                - True: Full GR is used
+                - False: Relativistic transfer to the observer is ignored
+                         (i.e non-relativistic SED)
+            The default is True.
+
+        Returns
+        -------
+        Ltot : array
+            Total SED in whatever units are currently set.
+
+        """
+        
+        Ld = self.get_DiscComponent(rel=rel)
+        Lw = self.get_WarmComponent(rel=rel)
+        Lh = self.get_HotComponent(rel=rel)
+        
+        Ltot = Ld + Lw + Lh
+        return Ltot
+        
+        
+    
+    
+    
+    
+    
+    
 
 
 
 
 class relqso(relagn):
+    
+    """
+    relqso - A simplified version of relagn, where we fix some parameters to
+    typical values (kTe_hot = 100keV, kTe_warm=0.2keV, Gamma_warm = 2.5,
+    r_warm = 2r_hot, and h_max = 10 (maybe 100 - change later))
+    
+    Here we also calculate r_hot based off the condition that L_diss = 0.02Ledd,
+    which also sets \Gamma_hot, based of the ratio to Ldiss and Lseed
+    Finally, the outer disc radius, r_out, is set to the self-gravity radius
+    
+    For more details on the model - see Hagen & Done (in prep)
+    
+    
+    Parameters
+    ----------
+    M : float
+        Black hole mass - units : Msol
+    dist : float
+        Co-Moving Distance - units : Mpc
+    log_mdot : float
+        log mass accretion rate - units : Eddington
+    a : float
+        Dimensionless Black Hole spin - units : Dimensionless
+    cos_inc : float
+        cos inclination angle, as measured from the z-axis, with disc in the 
+        x-y plane - units : Dimensionless
+    fcol : float
+        Colour temperature correction as described in Done et al. (2012)
+        If -ve then follows equation 1 and 2 in Done et al. (2012).
+        If +ve then assumes this to be constant correction over entire disc region
+    z : float
+        Redshift
+    """
     
     
     def __init__(self,
