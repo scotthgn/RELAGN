@@ -130,56 +130,90 @@ class relagn:
     For more details on the model - see Hagen & Done (in prep)
     
     
-    Parameters
-    ----------
-    M : float
-        Black hole mass - units : Msol
-        
-    dist : float
-        Co-Moving Distance - units : Mpc
-        
-    log_mdot : float
-        log mass accretion rate - units : Eddington
-        
-    a : float
-        Dimensionless Black Hole spin - units : Dimensionless
-        
-    cos_inc : float
-        cos inclination angle
-        
-    kTe_hot : float
-        Electron temp for hot Compton region - units : keV
-        
-    kTe_warm : float
-        Electron temp for warm Compton region - units : keV
-        
-    gamma_hot : float
-        Spectral index for hot Compton region
-        
-    gamma_warm : float
-        Spectral index for warm Compton region
-        
-    r_hot : float
-        Outer radius of hot Compton region - units : Rg
-        
-    r_warm : float
-        Outer radius of warm Compton region - units : Rg
-        
-    log_rout : float
-        log of outer disc radius - units : Rg
-        WARNING! Max value is r_out = 1e3 - set by kyconv
-        
-    fcol : float
-        Colour temperature correction as described in Done et al. (2012)
-        If -ve then follows equation 1 and 2 in Done et al. (2012).
-        If +ve then assumes this to be constant correction over entire disc region
-        
-    h_max : float
-        Scale height of hot Compton region - units : Rg
-        
-    z : float
-        Redshift
+     
+    Attributes 
+    ----------    
+    risco : float
+        Innremost stable circular orbit - units : Dimensionless (Rg)
     
+    r_sg : float
+        Self-Gravity radius of the disc, following Laor & Netzer 1989
+        Units : Dimensionless (Rg)
+    
+    eta : float
+        Accretion efficiency. Used to convert from mass accretion rate to 
+        luminosity. i.e L = eta * Mdot * c^2
+        Units : dimensionless
+    
+    Egrid : array
+        Energy grid used for calculations (in frame of black hole) - units : keV
+    
+    nu_grid : array
+        Frequency grid corresponding to Egrid - units : Hz
+    
+    wave_grid : array
+        Wavelength grid corresponding to Egrid - units : Ångstrom
+    
+    E_obs : array
+        Energy grid converted to observer frame (i.e redshift corrected) - units : keV
+    
+    nu_obs : array
+        Frequency grid converted to observer frame - units : Hz
+    
+    wave_obs : array
+        Wavelength grid converted to observer frame - units : Ångstrom
+    
+    ###########################################################################
+    There are other attributes, however it is recomended that you 
+    extract these using the built in methods in order to deal with unit choices 
+    correctly. The remaining ones after this are only necessary for the internal 
+    calculations, so no need to worry about them!
+    ###########################################################################
+    
+    
+    Important Methods
+    -----------------
+    get_totSED(rel=True)
+        Extracts the total SED (disc + warm + hot components) in whatever
+        units are set
+    
+    get_DiscComponent(rel=True)
+        Extracts disc component from SED (after checking if it exists in the
+        current model geometry) in whatever units are set
+    
+    get_WarmComponent(rel=True)
+        Extracts warm Compton component from SED (after checking if it exists
+        in the current model geometry) in whatever units are set
+    
+    get_HotComponent(rel=True)
+        Extracts hot Compton component from SED (after checking if it exists
+        in the current model geometry) in whatever units are set
+    
+    set_units(new_unit='cgs')
+        Sets the system units to use when extracting spectra / system
+        properties
+    
+    set_flux()
+        Sets a flag s.t all spectra are given in terms of flux rather than
+        luminosity
+    
+    set_lum()
+        Sets a flag s.t all spectra are given in luminosity (this is the default)
+    
+    get_Ledd()
+        Gives Eddington luminosity in whatever units are set
+        (Note: in frame of black hole!!)
+    
+    get_Rg()
+        Gives scale of gravitaional radius (Rg = GM/c^2) in whatever units 
+        are set
+    
+    get_Mdot()
+        Gives PHYSICAL mass accretion rate, in either g/s or kg/s
+        (depending on what units are set)
+    
+    
+    ###########################################################################
     
     """
     
@@ -212,7 +246,43 @@ class relagn:
                  fcol=1,
                  h_max=10,
                  z=0):
-
+        """
+        Parameters
+        ----------
+        M : float
+            Black hole mass - units : Msol      
+        dist : float
+            Co-Moving Distance - units : Mpc
+        log_mdot : float
+            log mass accretion rate - units : Eddington
+        a : float
+            Dimensionless Black Hole spin - units : Dimensionless
+        cos_inc : float
+            cos inclination angle
+        kTe_hot : float
+            Electron temp for hot Compton region - units : keV
+        kTe_warm : float
+            Electron temp for warm Compton region - units : keV
+        gamma_hot : float
+            Spectral index for hot Compton region
+        gamma_warm : float
+            Spectral index for warm Compton region
+        r_hot : float
+            Outer radius of hot Compton region - units : Rg
+        r_warm : float
+            Outer radius of warm Compton region - units : Rg
+        log_rout : float
+            log of outer disc radius - units : Rg
+        fcol : float
+            Colour temperature correction as described in Done et al. (2012)
+            If -ve then follows equation 1 and 2 in Done et al. (2012).
+            If +ve then assumes this to be constant correction over entire disc region
+        h_max : float
+            Scale height of hot Compton region - units : Rg
+        z : float
+            Redshift
+        """
+        
         #Read params
         self.M = M
         self.D, self.d = dist, (dist * u.Mpc).to(u.cm).value
@@ -297,7 +367,7 @@ class relagn:
     ###########################################################################
     #---- Performing checks on certain parameters. 
     #     To ensure that we are within both physical limits 
-    #     (i.e -0.998 <= a <= 0.998) AND that we dont wonder off acceptable 
+    #     (i.e -0.998 <= a <= 0.998) AND that we dont wander off acceptable 
     #     values of kyconv (i.e 3 <= inc <= 85 deg)
     ###########################################################################
     
@@ -372,7 +442,7 @@ class relagn:
         getter methods
         
         Note, the only difference between setting cgs vs counts is in spectra
-        Any integrated luminosities (e.g. Lbol, Ledd) will be given in 
+        Any integrated luminosities (e.g. Ledd) will be given in 
         erg/s IF counts is  set
 
         Parameters
@@ -508,19 +578,16 @@ class relagn:
         Caclulate eddington Luminosity
 
         """
-        #Ledd_c = (4 * np.pi * G * self.M * (2*self.mu) * m_p * c)/sigma_T
         Ledd = 1.39e31 * self.M 
-        #print(Ledd, Ledd_c)
         self.L_edd = Ledd
     
     
     def _calc_risco(self):
         """
         Calculating innermost stable circular orbit for a spinning
-        black hole. Follows Page and Thorne (1974). Note, can also be reffered
-        to as r_ms, for marginally stable orbit
-        
-        return r_isco as property - so will be called in __init__
+        black hole. Follows Page and Thorne (1974). Note, in the litterature
+        this is also reffered to as r_ms, for marginally stable orbit.
+        We will stick to risco throughout!
 
         """
         Z1 = 1 + (1 - self.a**2)**(1/3) * (
@@ -535,8 +602,7 @@ class relagn:
         """
         Calcultes the self gravity radius according to Laor & Netzer 1989
         
-        NOTE: Assuming that \alpha=0.1 - in future should figure out how to
-        constrain this properly!!!
+        NOTE: Assuming that \alpha=0.1 
 
         """
         alpha = 0.1 #assuming turbulence NOT comparable to sound speed
@@ -551,10 +617,6 @@ class relagn:
         Using the GR case, where eta = 1 - sqrt(1 - 2/(3 r_isco)) 
             Taken from: The Physcis and Evolution of Active Galactic Nuceli,
             H. Netzer, 2013, p.38
-        
-        Note to self!: When I derive this in Newtonian limit I get
-        eta = 1/(2 r_isco). Not entirely sure how to derive the GR version.
-        Should ask Chris at next meeting!!!!
 
         """
         
@@ -566,6 +628,12 @@ class relagn:
         Calculates the Novikov-Thorne relativistic factors.
         see Active Galactic Nuclei, J. H. Krolik, p.151-154
         and Page & Thorne (1974)
+        
+        Parameters
+        ----------
+        r : float OR array
+            Disc radius (as measured from black hole)
+            Units : Dimensionless (Rg)
 
         """
         y = np.sqrt(r)
@@ -596,7 +664,19 @@ class relagn:
     def calc_Tnt(self, r):
         """
         Calculates Novikov-Thorne disc temperature^4 at radius r. 
- 
+        
+        Parameters
+        ----------
+        r : float OR array
+            Disc radius (as measured from black hole)
+            Units : Dimensionless (Rg)
+        
+        Returns
+        -------
+        T4 : float OR array
+            Novikov-Thorne disc temperature at r (to the power 4)
+            Units : K^4 (Kelvin to power 4)
+        
         """
         Rt = self._calc_NTparams(r)
         const_fac = (3 * G * self.M * self.mdot * self.Mdot_edd)/(
@@ -616,12 +696,12 @@ class relagn:
         Parameters
         ----------
         Tm : float
-            Max temperature at annulus (ie Ttot(r)) - units : K.
+            Max temperature at annulus (ie T(r)) - units : K.
 
         Returns
         -------
         fcol_d : float
-            colour temperature correction at T
+            colour temperature correction at temperature T
 
         """
         if Tm > 1e5:
@@ -641,14 +721,6 @@ class relagn:
         return fcol_d
     
     
-    
-    def _calc_Dl(self):
-        """
-        Calculates luminosity distance to source
-        """
-        
-        self.Dl = self.D# * (1+self.z) #In Mpc
-        self.dl = self.d# * (1+self.z) #In cm
     
     
     
@@ -739,7 +811,7 @@ class relagn:
     def change_rBins(self, new_drdex):
         """
         JUST FOR TESTING PURPOSES!!!! Allows changing of radial bin-width
-        in an object oriented manner - makes testing easier...
+        makes testing easier...
 
         Parameters
         ----------
@@ -881,7 +953,13 @@ class relagn:
         """
         Calculates contribution from entire disc section - for relativistic 
         case
-
+        
+        Returns
+        -------
+        Lnu_disc_rel : array
+            Total RELATIVISTIC spectrum for standard disc region
+            Units : W/Hz
+        
         """    
         for i in range(len(self.logr_ad_bins) - 1):
             dr_bin = 10**self.logr_ad_bins[i+1] - 10**self.logr_ad_bins[i] #width in lin space
@@ -947,14 +1025,20 @@ class relagn:
         else:
             Lnu_tot = Lnu_all
         
-        self.Lnu_disc_rel = Lnu_tot  #* self.cosinc/0.5
-        return Lnu_tot
+        self.Lnu_disc_rel = Lnu_tot 
+        return self.Lnu_disc_rel
     
     
     def do_nonrelDiscSpec(self):
         """
         Calculates contribution from entire disc section - for non-relativisitc
         case. Usefull for comparison...
+        
+        Returns
+        -------
+        Lnu_disc_norel : array
+            Total NON-RELATIVISTIC spectum from standard disc region
+            Units ; W/Hz
 
         """
         for i in range(len(self.logr_ad_bins) - 1):
@@ -982,7 +1066,13 @@ class relagn:
         """
         Calculates contribution from entire warm Compton region - for 
         relativistic case
-
+        
+        Returns
+        -------
+        Lnu_warm_rel : array
+            Total RELATIVISTIC spectrum from hot Compton region
+            Units : W/Hz
+        
         """
         for i in range(len(self.logr_wc_bins) - 1):
             dr_bin = 10**self.logr_wc_bins[i+1] - 10**self.logr_wc_bins[i]
@@ -1033,13 +1123,19 @@ class relagn:
             Lnu_tot = Lnu_all
             
         self.Lnu_warm_rel = Lnu_tot
-        return Lnu_tot
+        return self.Lnu_warm_rel
     
     
     def do_nonrelWarmCompSpec(self):
         """
         Calculates contribution from entire warm Compton region - for 
         non-relativistic case
+        
+        Returns
+        -------
+        Lnu_warm_norel : array
+            Total NON-RELATIVISTIC spectrum from warm Compton region
+            Units : W/Hz
         
         """
         for i in range(len(self.logr_wc_bins) - 1):
@@ -1132,7 +1228,7 @@ class relagn:
     
     def Lseed_hotCorona(self):
         """
-        Calculated luminsoty of seed photons emitted at radius r, intercepted
+        Calculates luminsoty of seed photons emitted at radius r, intercepted
         by corona
 
         Returns
@@ -1180,6 +1276,11 @@ class relagn:
         
         where Ldiss is the energy dissipated from the accretion flow, and
         Lseed is the seed photon luminosity intercpted by the corona
+        
+        Returns
+        -------
+        Lhot : float
+            Total luminosity of hot Comtpon corona - units : W
 
         """
         
@@ -1197,6 +1298,13 @@ class relagn:
         """
         Calculates spectrum from radial slice of hot comp region
         Neccessary in order to apply kyconv correctly!
+        
+        Note - this is in FRAME of the BLACK HOLE!
+        
+        Returns
+        -------
+        Lnu_ann : array
+            Spectrum from annular slice of hot Compton region - units : W/Hz
 
         """
 
@@ -1216,7 +1324,12 @@ class relagn:
     def do_relHotCompSpec(self):
         """
         Calculates spectrum of hot compton region - with relativity!
-
+        
+        Returns
+        -------
+        Lnu_hot_rel : array
+            Total RELATIVISTIC spectrum from hot Compton region - units: W/Hz
+            
         """
 
         for i in range(len(self.logr_hc_bins) - 1):
@@ -1270,13 +1383,18 @@ class relagn:
             Lnu_tot = Lnu_all
 
         self.Lnu_hot_rel = Lnu_tot
-        return Lnu_tot
+        return self.Lnu_hot_rel
         
     
     def do_nonrelHotCompSpec(self):
         """
         Calculates spectrum of hot comptonised region - no relativity
-
+        
+        Returns
+        -------
+        Lnu_hot_norel : array
+            Total NON-RELATIVISTIC spectrum from hot Compton region
+            Units : W/Hz
         """
         Lum = self.hotCorona_lumin()
         self.Lnu_hot_norel = Lum * (self.Fnu_seed_hot/np.trapz(
@@ -1460,7 +1578,73 @@ class relagn:
         Ltot = Ld + Lw + Lh
         return Ltot
         
+    
+    
+    ###########################################################################
+    #---- Methods for extracting other useful attributes
+    ###########################################################################
+    
+    def get_Ledd(self):
+        """
+        Gives system Eddington luminosity in whatever units are currently set
         
+        Ignores flux flag - ALWAYS as luminosity 
+        
+        Returns
+        -------
+        Ledd : float
+            Eddington luminosity.
+
+        """
+        
+        Ledd = self._to_newUnit(self.L_edd, as_spec=False)
+        return Ledd
+    
+    def get_Rg(self):
+        """
+        Gives scale of one gravitational radius
+        
+        If units are: cgs, cgs_wave, or counts - then returns in cm
+        If units are: SI or SI_wave - then returns in m
+
+        Returns
+        -------
+        R_G : float
+            Gravitational radius.
+
+        """
+        
+        if self.units == 'SI' or self.units == 'SI_wave':
+            R_G = self.Rg
+        else:
+            R_G = self.R_G * 100
+        
+        return R_G
+    
+    def get_Mdot(self):
+        """
+        Gives PHYSICAL mass accretion rate
+        
+        If units are: cgs, cgs_wave, or counts - then returns in g/s
+        If units are: SI or SI_wave - then returns in kg/s
+
+        Returns
+        -------
+        Mdot : float
+            Physical mass accretion rate.
+
+        """
+        
+        Mdot = self.mdot * self.Mdot_edd #kg/s
+        if self.units == 'SI' or self.units == 'SI_wave':
+            pass
+        else:
+            Mdot *= 1e3 #g/s
+        
+        return Mdot
+        
+        
+    
     
     
     
@@ -1485,25 +1669,100 @@ class relqso(relagn):
     For more details on the model - see Hagen & Done (in prep)
     
     
-    Parameters
+    Attributes 
     ----------
-    M : float
-        Black hole mass - units : Msol
-    dist : float
-        Co-Moving Distance - units : Mpc
-    log_mdot : float
-        log mass accretion rate - units : Eddington
-    a : float
-        Dimensionless Black Hole spin - units : Dimensionless
-    cos_inc : float
-        cos inclination angle, as measured from the z-axis, with disc in the 
-        x-y plane - units : Dimensionless
-    fcol : float
-        Colour temperature correction as described in Done et al. (2012)
-        If -ve then follows equation 1 and 2 in Done et al. (2012).
-        If +ve then assumes this to be constant correction over entire disc region
-    z : float
-        Redshift
+    r_h : float
+        Outer radius of hot Compton region
+    
+    r_w : float
+        Outer radius of warm Compton region
+    
+    gamma_h : float
+        Spectral index of hot Compton component
+    
+    risco : float
+        Innremost stable circular orbit - units : Dimensionless (Rg)
+    
+    r_sg : float
+        Self-Gravity radius of the disc, following Laor & Netzer 1989
+        Units : Dimensionless (Rg)
+    
+    eta : float
+        Accretion efficiency. Used to convert from mass accretion rate to 
+        luminosity. i.e L = eta * Mdot * c^2
+        Units : dimensionless
+    
+    Egrid : array
+        Energy grid used for calculations (in frame of black hole) - units : keV
+    
+    nu_grid : array
+        Frequency grid corresponding to Egrid - units : Hz
+    
+    wave_grid : array
+        Wavelength grid corresponding to Egrid - units : Ångstrom
+    
+    E_obs : array
+        Energy grid converted to observer frame (i.e redshift corrected) - units : keV
+    
+    nu_obs : array
+        Frequency grid converted to observer frame - units : Hz
+    
+    wave_obs : array
+        Wavelength grid converted to observer frame - units : Ångstrom
+    
+    ###########################################################################
+    There are other attributes, however it is recomended that you 
+    extract these using the built in methods in order to deal with unit choices 
+    correctly. The remaining ones after this are only necessary for the internal 
+    calculations, so no need to worry about them!
+    ###########################################################################
+    
+    
+    Important Methods
+    -----------------
+    get_totSED(rel=True)
+        Extracts the total SED (disc + warm + hot components) in whatever
+        units are set
+    
+    get_DiscComponent(rel=True)
+        Extracts disc component from SED (after checking if it exists in the
+        current model geometry) in whatever units are set
+    
+    get_WarmComponent(rel=True)
+        Extracts warm Compton component from SED (after checking if it exists
+        in the current model geometry) in whatever units are set
+    
+    get_HotComponent(rel=True)
+        Extracts hot Compton component from SED (after checking if it exists
+        in the current model geometry) in whatever units are set
+    
+    set_units(new_unit='cgs')
+        Sets the system units to use when extracting spectra / system
+        properties
+    
+    set_flux()
+        Sets a flag s.t all spectra are given in terms of flux rather than
+        luminosity
+    
+    set_lum()
+        Sets a flag s.t all spectra are given in luminosity (this is the default)
+    
+    get_Ledd()
+        Gives Eddington luminosity in whatever units are set
+        (Note: in frame of black hole!!)
+    
+    get_Rg()
+        Gives scale of gravitaional radius (Rg = GM/c^2) in whatever units 
+        are set
+    
+    get_Mdot()
+        Gives PHYSICAL mass accretion rate, in either g/s or kg/s
+        (depending on what units are set)
+    
+    
+    ###########################################################################
+    
+    
     """
     
     
@@ -1515,6 +1774,27 @@ class relqso(relagn):
                  cos_inc=0.5,
                  fcol=1,
                  z=0):
+        """
+        Parameters
+        ----------
+        M : float
+            Black hole mass - units : Msol
+        dist : float
+            Co-Moving Distance - units : Mpc
+        log_mdot : float
+            log mass accretion rate - units : Eddington
+        a : float
+            Dimensionless Black Hole spin - units : Dimensionless
+        cos_inc : float
+            cos inclination angle, as measured from the z-axis, with disc in the 
+            x-y plane - units : Dimensionless
+        fcol : float
+            Colour temperature correction as described in Done et al. (2012)
+            If -ve then follows equation 1 and 2 in Done et al. (2012).
+            If +ve then assumes this to be constant correction over entire disc region
+        z : float
+            Redshift
+        """
         
         #Read params
         self.M = M
