@@ -1,0 +1,8 @@
+relqso		7	0.	1.e20	relqso  add	0	0
+M		Msol	1e5	1	1	1e10	1e10	-1
+Dist		Mpc	1	1e-4	1e-4	1e3	1e3	-1
+log_mdot	""	-1	-1.6	-1.6	2	2	0.01
+astar		""	0	0	0	0.998	0.998	0.01
+cos_inc	""	0.5	0.09	0.09	0.998	0.998	-1
+redshift	""	0	0	0	1	1	-1
+$rel 1
