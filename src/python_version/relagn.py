@@ -27,9 +27,9 @@ from pyNTHCOMP import donthcomp
 #Stop all the run-time warnings (we know why they happen - doesn't affect the output!)
 warnings.filterwarnings('ignore') 
 
-"""
-Constants
-"""
+
+
+#Constants
 G = (const.G * const.M_sun).value #Grav const in units m^3 s^-1 Msol^-1
 c = const.c.value #speed of light, m/s
 h = const.h.value #planck constant, Js
@@ -39,9 +39,8 @@ m_p = const.m_p.value #Proton mass, kg
 k_B = const.k_B.value #Boltzmann const, J K^-1
 
 
-"""
-Relevant funcitons
-"""
+
+#Relevant funcitons
 
 def do_black_body(T, nu):
     pre_fac = (2 * h * nu**3)/(c**2)
@@ -152,7 +151,7 @@ class relagn:
         Frequency grid corresponding to Egrid - units : Hz
     
     wave_grid : array
-        Wavelength grid corresponding to Egrid - units : Ångstrom
+        Wavelength grid corresponding to Egrid - units : Angstrom
     
     E_obs : array
         Energy grid converted to observer frame (i.e redshift corrected) - units : keV
@@ -161,7 +160,7 @@ class relagn:
         Frequency grid converted to observer frame - units : Hz
     
     wave_obs : array
-        Wavelength grid converted to observer frame - units : Ångstrom
+        Wavelength grid converted to observer frame - units : Angstrom
     
     ###########################################################################
     There are other attributes, however it is recomended that you 
@@ -330,7 +329,6 @@ class relagn:
         #physical conversion factors
         self.Mdot_edd = self.L_edd/(self.eta * c**2)
         self.Rg = (G * self.M)/(c**2)
-        self._calc_Dl()
         
         
         #Energy/frequency grid
@@ -972,7 +970,7 @@ class relagn:
             fluxs = (Lnu_ann*4 * u.W/u.Hz).to(u.keV/u.s/u.keV,
                                               equivalencies=u.spectral()).value
                 
-            fluxs = fluxs/(4*np.pi * self.dl**2)
+            fluxs = fluxs/(4*np.pi * self.d**2)
             phs = list((self.dEs*fluxs)/self.Egrid)
 
                         
@@ -1004,7 +1002,7 @@ class relagn:
                 
                 phs_r = np.array(phs)/self.dEs
                 
-                L_kev = phs_r * self.Egrid * 4 * np.pi * self.dl**2 
+                L_kev = phs_r * self.Egrid * 4 * np.pi * self.d**2 
                 Lnu_r = (L_kev * u.keV/u.s/u.keV).to(u.W/u.Hz, equivalencies=u.spectral()).value
                 
                 
@@ -1083,7 +1081,7 @@ class relagn:
             fluxs = (Lnu_ann*4 * u.W/u.Hz).to(u.keV/u.s/u.keV,
                                               equivalencies=u.spectral()).value
             
-            fluxs = fluxs/(4*np.pi * self.dl**2)
+            fluxs = fluxs/(4*np.pi * self.d**2)
             
             phs = list((fluxs*self.dEs)/self.Egrid)
 
@@ -1102,7 +1100,7 @@ class relagn:
                 phs_r = np.array(phs)/self.dEs
                 
                 
-                L_kev = phs_r * self.Egrid * 4 * np.pi * self.dl**2
+                L_kev = phs_r * self.Egrid * 4 * np.pi * self.d**2
                 Lnu_r = (L_kev * u.keV/u.s/u.keV).to(u.W/u.Hz, equivalencies=u.spectral()).value
             
             else:
@@ -1342,7 +1340,7 @@ class relagn:
                                               equivalencies=u.spectral()).value
             
         
-            fluxs = fluxs/(4*np.pi * self.dl**2)
+            fluxs = fluxs/(4*np.pi * self.d**2)
             phs = list((fluxs*self.dEs)/self.Egrid)
                 
             
@@ -1359,7 +1357,7 @@ class relagn:
                                                 kyparams, phs)
                 phs_r = np.array(phs)/self.dEs
                 
-                L_kev = phs_r * self.Egrid * 4 * np.pi * self.dl**2
+                L_kev = phs_r * self.Egrid * 4 * np.pi * self.d**2
                 Lnu_r = (L_kev * u.keV/u.s/u.keV).to(u.W/u.Hz, equivalencies=u.spectral()).value
                 Lnu_r /= (self.cosinc/0.5) #kyconv includes inclination factor
                                            #However, since spherical geometry
@@ -1699,7 +1697,7 @@ class relqso(relagn):
         Frequency grid corresponding to Egrid - units : Hz
     
     wave_grid : array
-        Wavelength grid corresponding to Egrid - units : Ångstrom
+        Wavelength grid corresponding to Egrid - units : Angstrom
     
     E_obs : array
         Energy grid converted to observer frame (i.e redshift corrected) - units : keV
@@ -1708,7 +1706,7 @@ class relqso(relagn):
         Frequency grid converted to observer frame - units : Hz
     
     wave_obs : array
-        Wavelength grid converted to observer frame - units : Ångstrom
+        Wavelength grid converted to observer frame - units : Angstrom
     
     ###########################################################################
     There are other attributes, however it is recomended that you 
