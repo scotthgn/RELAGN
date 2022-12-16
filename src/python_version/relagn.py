@@ -380,10 +380,10 @@ class relagn:
     
     
     def _check_inc(self):
-        if self.cosinc <= 0.98 and self.cosinc >= 0.09:
+        if self.cosinc <= 1 and self.cosinc >= 0.09:
             pass
         else:
-            raise ValueError('Inclination out of bounds - will not work with kyconv or kerrbb! \n'
+            raise ValueError('Inclination out of bounds - will not work with kyconv! \n'
                              'Require: 0.09 <= cos(inc) <= 0.98 \n'
                              'Translates to: 11.5 <= inc <= 85 deg')
     

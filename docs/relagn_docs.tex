@@ -1,0 +1,229 @@
+\documentclass[a4paper, 11pt, times, onecolumn]{article}
+
+\usepackage{geometry}
+\geometry{left=20mm, right=20mm}
+
+\usepackage{titling}
+
+\usepackage{graphics, graphicx, epsfig, ulem}
+\usepackage{amsmath}
+
+\usepackage{xcolor}
+
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue}
+
+\usepackage{enumitem}
+\setlist[description]{align=parleft, left=0pt..2.5cm}
+
+
+\title{{\tt RELAGN}: Documentation}
+\author{Scott Hagen \\ Email: \href{mailto:scott.hagen@durham.ac.uk}{scott.hagen@durham.ac.uk}}
+\date{}
+
+%Defining commands
+\newcommand{\Msol}{M_{\odot}}
+\newcommand{\mdot}{\dot{m}}
+\newcommand{\Mdot}{\dot{M}}
+\newcommand{\Mdedd}{\dot{M}_{\mathrm{Edd}}}
+\newcommand{\Ledd}{L_{\mathrm{Edd}}}
+\newcommand{\kTh}{kT_{e, h}}
+\newcommand{\kTw}{kT_{e, w}}
+\newcommand{\risco}{r_{\mathrm{isco}}}
+\newcommand{\rout}{r_{\mathrm{out}}}
+\newcommand{\fcol}{f_{\mathrm{col}}}
+\newcommand{\hmax}{h_{\mathrm{max}}}
+
+\newcommand{\sbt}{\,\begin{picture}(-1,1)(-1,-3)\circle*{3}\end{picture}\ }
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+
+\section{{\tt RELAGN}}
+
+We will start by describing the main model {\sc relagn}. Throughout we assume you have either downloaded or cloned the GitHub repository, and we will work on the assumption that you have not changed the directory structure within the repository since downloading it.
+
+This documentation is only meant as a guide on how to use the code. For a description of the model, please see the main paper (Hagen \& Done, in prep). If this code us useful in your work, please cite: \textcolor{blue}{Input bibtex for paper here!!}
+
+
+\subsection{Input Parameters}
+
+Here we give an overview of the parameters that define the model. We include a brief description, the units, and the defualt values (i.e what the code will use if you do not pass this parameter). For some parameters we also include limits. These are {\bf not based off any physical argument} - but actual limits that will break the code if exceeded (for a variety of reasons). For an idea of sensible {\bf physical} limits, see \textcolor{blue}{Hagen \& Done, insert here} for a description of the physics that go into the model.
+
+
+\begin{description}
+	\item[Par\,1:\,\,$M$] Mass of central black hole \\
+		$\sbt$ {\it Units}: $\Msol$ \\
+		$\sbt$ {\it Default}: $10^{8}$ \\
+
+	
+	\item[Par\,2:\,\,$D$]  Distance from the observer to the black hole \\
+		$\sbt$ {\it Units}: Mpc \\
+		$\sbt$ {\it Defualt}: $100$ \\
+		$\sbt$ {\it Limits}: $D>0$ - Must be greater than 0 distance...
+	
+	\item[Par\,3:\,\,$\log \mdot$] Mass-accretion rate - Scaled by the Eddington mass accretion rate, such that $\mdot = \Mdot/\Mdedd$, where $\Mdot$ is the physical mass accretion rate of the system (i.e unit mass per unit time) and $\Mdedd$ is the Eddigton mass accretion rate. This is related to the Eddington luminosity through $\Ledd = \eta \Mdedd c^{2}$, where $\eta$ is a black hole spin dependent efficiency factor, and $c$ is the speed of light. \\
+		$\sbt$ {\it Units}: Dimensionless \\
+		$\sbt$ {\it Default}: $-1$ \\
+	
+	\item[Par\,4:\,\,$a$] Black hole spin parameter. 0 Implies non-spinning, while 1 is maximally spinning with prograde rotation (i.e in the same direction as the accretion disc). Note that the code enforces an upper limit of 0.998, which is the theoretical maximum assuming the presence of a disc \textcolor{blue}{insert Thorne 1974 citation!} \\
+		$\sbt$ {\it Units}: Dimensionless \\
+		$\sbt$ {\it Default}: $0$ \\
+		$\sbt$ {\it Limits} $0 \leq a \leq 0.998$ (Retrograde rotation not currently supported by the GR transfer functions we use)
+	
+	\item[Par\,5:\,\,$\cos(i)$] Cosine of the inclination of the observer with respect to the disc. This is measured from the z-axis, with the disc in the x-y plane (i.e $\cos(i) = 1$ would imply an observer located on the z-axis looking straight down onto the disc, while $\cos(i) = 0$ will imply an edge on view of the disc). \\
+		$\sbt$ {\it Units}: Dimensionless \\
+		$\sbt$ {\it Default}: 0.5 \\
+		$\sbt$ {\it Limits}: $0.09 \leq \cos(i) \leq 1$ (Exactly edge on will give you a disc that is not visible...) 
+	
+	\item[Par\,6:\,\,$\kTh$] Electron temperature for the hot Comptonisation region (i.e the X-ray corona). This sets the high-energy roll-over of hot Comptonisation component in the spectrum. \\
+		$\sbt$ {\it Units}: keV \\
+		$\sbt$ {\it Default}: 100  \\
+		$\sbt$ {\it Limits}: $0 < \kTh$ (Apart from being wildly unrealistic, 0 electron temperature will lead to segmentation faults) 
+	
+	\item[Par\,7:\,\,$\kTw$] Electron temperature for the warm Componisation region \\
+		$\sbt$ {\it Units}: keV \\
+		$\sbt$ {\it Default}: 0.2 \\
+		$\sbt$ {\it Limits}: $0 < \kTw$ (Same reasoning as above!)
+	
+	\item[Par\,8:\,\,$\Gamma_{h}$] Spectral index for the hot Comptonisation component \\
+		$\sbt$ {\it Units}: Dimensionless \\
+		$\sbt$ {\it Default}: 1.7 \\
+		$\sbt$ {\it Limits}: $1.1 \leq \Gamma_{h}$ ({\sc nthcomp} will break for unrealistically steep spectra)
+	
+	\item[Par\,9:\,\,$\Gamma_{w}$] Spectral index for the warm Comptonisation component \\
+		$\sbt$ {\it Units}: Dimensionless \\
+		$\sbt$ {\it Default}: 2.7 \\
+		$\sbt$ {\it Limits}: $1.1 \leq \Gamma_{w}$ (Same reasoning as above)
+	
+	\item[Par\,10:\,\,$r_{h}$] Outer radius of the hot Comptonisation region (X-ray corona). If this is negative, then the code will use the innermost stable circular orbit, $\risco$ \\
+		$\sbt$ {\it Units}: Dimensionless gravitational units, $r=R/R_{G}$ where $R_{G} = GM/c^{2}$ \\
+		$\sbt$ {\it Default}: 10
+	
+	\item[Par\,11:\,\,$r_{w}$] Outer radius of the warm Comptonisation region. If this is negative, then the code will use $\risco$. \\
+		$\sbt$ {\it Units}: $R_{G}$ \\
+		$\sbt$ {\it Default}: 10
+	
+	\item[Par\,12:\,\,$\log \rout$]: Outer disc radius. If this is negative, then the code will use the self-gravity radius from \textcolor{blue}{Insert Laor and Netzer ref here}. \\
+		$\sbt$ {\it Units}: $R_{G}$ \\
+		$\sbt$ {\it Default}: -1 (i.e self-gravity)
+	
+	\item[Par\,13:\,\,$\fcol$] Colour-temperature correction. Note, that this is only applied to the standard disc region. If negative, then the code will use the relation given in \textcolor{blue}{insert Done et al 2012 reference here!!}. Otherwise it is treated as a constant correction across the entire standard disc region, such that the black-body emission from each annulus is given by $B_{\nu}(\fcol T(r))/\fcol^{4}$, where $T(r)$ is the temperature at that the annulus and $B_{\nu}$ denotes the black-body emission.\\
+		$\sbt$ {\it Units}: Dimensionless \\
+		$\sbt$ {\it Default}: 1 
+	
+	\item[Par\,14:\,\,$\hmax$] Maximal scale-height of the hot X-ray corona. This is a tuning parameter, and only affects the seed photons from the disc intercepted by the corona. If $\hmax > r_{h}$, then the code will automatically switch to $r_{h}$ as the maximal scale-height. \\
+		$\sbt$ {\it Units}: $R_{G}$ \\
+		$\sbt$ {\it Default}: 10
+	
+	\item[Par\,15:\,\,$z$] Redshift of the source (i.e the black hole) as seen by the observer. As all calculations are initially done in the frame of the black hole, this correction is only applied when transforming to an observed spectrum. \\
+		$\sbt$ {\it Units}: Dimensionless \\
+		$\sbt$ {\it Default}: 0
+		
+\end{description}
+
+
+
+
+\subsection{Running through {\tt XSPEC}}
+
+If you wish to fit the model to observational data the easiest way is through {\sc xspec}, as this will take into account telescope effective areas and responses. To this extent, we have written a bespoke {\sc xspec} version of the model in {\sc fortran}. Before getting started though, there are a couple of steps to required by you in order to compile the model.
+
+
+\subsubsection{Installation and Compilation}
+
+As the code is written for {\sc xspec} it should also be compiled within {\sc xspec}. To make this simple we have included a shell script, {\sc compile\_to\_xspec.sh}, which executes the required commands for compilation. This is found within the main {\sc relagn} directory and is excecuted by typing:
+
+\begin{verbatim}
+	> sh compile_to_xspec.sh
+\end{verbatim}
+
+\noindent
+while within the {\sc relagn} main directory. Note that this will compile both {\sc relagn} and {\sc relqso}. What this does is execute the following commands (which you can type manually if you wish, instead of using the shell script):
+
+\begin{verbatim}
+	> xspec
+	> initpackage relagn lmod_relagn.dat /Path/To/RELAGN/src/fortran_version/relagn_dir
+\end{verbatim}
+
+\noindent
+where /Path/To is a place-holder for the directory path to {\sc relagn}. The code should now be compiled (you should check the terminal for any big errors!). If the compilation was successful, then you do not need to repeat this step - ever! (unless you happen to delete or move the source code). 
+
+The next step is to load the compiled code as a local model. This is done from within {\sc xspec}. So within your terminal, type:
+
+\begin{verbatim}
+	> xspec
+	> lmod relagn /Path/To/RELAGN/src/fortran_version/relagn_dir
+\end{verbatim}
+
+The model is now loaded, and you are good to go! Enjoy! (Note, that you will need to load it into {\sc xspec} {\bf every} time, unless you append to your {\sc xspec.rc} file. More on that below. If you want more information regarding compiling and loading local models in {\sc xspec}, taken a look at the {\sc xspec} documentation (\url{https://heasarc.gsfc.nasa.gov/xanadu/xspec/manual/XSappendixLocal.html})
+
+
+\paragraph{Automatically loading {\sc relagn} upon starting {\sc xspec}} 
+:
+
+If, like me, you do not want to have to type {\sc lmod etc...} every time you wish to use the model in a new {\sc xspec} session, you can modify your {\sc xspec.rc} file. This file contains any commands you wish {\sc xspec} to execute upon startup, and is located in the {\sc $\sim$/.xspec} directory (I'm assuming you compiled {\sc heasoft} using the source code, and following the instructions, and so this directory {\bf should} exist within you home directory.).
+
+Now, cd into the {\sc $\sim$/.xspec} directory, and open the xspec.rc file. If this file doesn't exist, create one. Within the file, add the line:
+
+\begin{verbatim}
+	 lmod relagn /Path/To/RELAGN/src/fortran_version/relagn_dir
+\end{verbatim}
+
+\noindent
+{\sc xspec} will now automatically execute that command upon start-up.  
+Don't want to have to type all that out yourself? No problemo, we've also included a shell script that will modify your xspec.rc file accordingly - so no typos! From within the {\sc relagn} directory, simply type:
+
+\begin{verbatim}
+	> sh init_autoLoad_xspec.sh
+\end{verbatim}
+
+\noindent
+This will {\bf append} the lmod line into your xspec.rc file (Note it will append for {\bf both} {\sc relagn} and {\sc relqso}). Only run this if you want {\sc xspec} to automatically load both models {\bf every} time you start a new session!!! For more info on modifying {\sc xspec}, take a look at their documentation (\url{https://heasarc.gsfc.nasa.gov/xanadu/xspec/manual/node33.html})
+
+
+\subsubsection{Fitting to data - Worked example}
+
+
+
+
+\subsection{Running through {\tt PYTHON}}
+
+Occasionally you might not wish to run the model through {\sc xspec}. For example, you could be using the model as a part of one of your own codes/models, or you simply don't enjoy using {\sc xspec} for your data analysis. To this extent using the {\sc python} version makes more sense (incidentally this was the original version of the model. The {\sc frotran} version only came into existence when I wanted an easier way of making it work with {\sc xspec}...) 
+
+In {\sc python} the {\sc relagn} model exists as a class that you can initiate (by passing your desired input parameters), and then you choose what parts of the model you want to calculate/extract (e.g you can choose to skip the GR ray tracing calculations, or only calculate specific components of the SED, etc.). Below we start by detailing the {\sc relagn} class attributes and methods, after which we give a few examples on creating and extracting SEDs.
+
+
+\subsubsection{{\sc relagn} class description}
+
+
+
+\subsubsection{Inititating the model - Worked example}
+
+
+
+\section{{\tt RELQSO}}
+
+\subsection{Input Parameters}
+
+
+
+\subsection{Running through {\tt XSPEC}}
+
+\subsubsection{Installation and Compilation}
+
+\subsubsection{Fitting to data - Worked example}
+
+
+
+\subsection{Running through {\tt PYTHON}}
+
+\subsubsection{Inititating the model - Worked example}
+
+\subsubsection{Class methods}
+
+
+\end{document}
