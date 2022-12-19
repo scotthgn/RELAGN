@@ -22,7 +22,8 @@ relqso.o
 
 
 
-##########
-#pychace
-###########
+####################
+#pychace and jupyter
+####################
 __pycache__
+.ipynb_checkpoints
