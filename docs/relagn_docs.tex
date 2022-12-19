@@ -14,9 +14,10 @@
 \hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue}
 
 \usepackage{enumitem}
-\setlist[description]{align=parleft, left=0pt..2.5cm}
+\setlist[description]{align=parleft, left=0pt..3cm}
 
 \usepackage{listings}
+\usepackage{changepage}
 
 
 \title{{\tt RELAGN}: Documentation}
@@ -57,71 +58,71 @@ Here we give an overview of the parameters that define the model. We include a b
 
 
 \begin{description}
-	\item[Par\,1:\,\,$M$] Mass of central black hole \\
+	\item[M] Mass of central black hole \\
 		$\sbt$ {\it Units}: $\Msol$ \\
 		$\sbt$ {\it Default}: $10^{8}$ \\
 
 	
-	\item[Par\,2:\,\,$D$]  Distance from the observer to the black hole \\
+	\item[D]  Distance from the observer to the black hole \\
 		$\sbt$ {\it Units}: Mpc \\
 		$\sbt$ {\it Defualt}: $100$ \\
 		$\sbt$ {\it Limits}: $D>0$ - Must be greater than 0 distance...
 	
-	\item[Par\,3:\,\,$\log \mdot$] Mass-accretion rate - Scaled by the Eddington mass accretion rate, such that $\mdot = \Mdot/\Mdedd$, where $\Mdot$ is the physical mass accretion rate of the system (i.e unit mass per unit time) and $\Mdedd$ is the Eddigton mass accretion rate. This is related to the Eddington luminosity through $\Ledd = \eta \Mdedd c^{2}$, where $\eta$ is a black hole spin dependent efficiency factor, and $c$ is the speed of light. \\
+	\item[log\_mdot] $\log \mdot$, Mass-accretion rate - Scaled by the Eddington mass accretion rate, such that $\mdot = \Mdot/\Mdedd$, where $\Mdot$ is the physical mass accretion rate of the system (i.e unit mass per unit time) and $\Mdedd$ is the Eddigton mass accretion rate. This is related to the Eddington luminosity through $\Ledd = \eta \Mdedd c^{2}$, where $\eta$ is a black hole spin dependent efficiency factor, and $c$ is the speed of light. \\
 		$\sbt$ {\it Units}: Dimensionless \\
 		$\sbt$ {\it Default}: $-1$ \\
 	
-	\item[Par\,4:\,\,$a$] Black hole spin parameter. 0 Implies non-spinning, while 1 is maximally spinning with prograde rotation (i.e in the same direction as the accretion disc). Note that the code enforces an upper limit of 0.998, which is the theoretical maximum assuming the presence of a disc \textcolor{blue}{insert Thorne 1974 citation!} \\
+	\item[a] Black hole spin parameter. 0 Implies non-spinning, while 1 is maximally spinning with prograde rotation (i.e in the same direction as the accretion disc). Note that the code enforces an upper limit of 0.998, which is the theoretical maximum assuming the presence of a disc \textcolor{blue}{insert Thorne 1974 citation!} \\
 		$\sbt$ {\it Units}: Dimensionless \\
 		$\sbt$ {\it Default}: $0$ \\
 		$\sbt$ {\it Limits} $0 \leq a \leq 0.998$ (Retrograde rotation not currently supported by the GR transfer functions we use)
 	
-	\item[Par\,5:\,\,$\cos(i)$] Cosine of the inclination of the observer with respect to the disc. This is measured from the z-axis, with the disc in the x-y plane (i.e $\cos(i) = 1$ would imply an observer located on the z-axis looking straight down onto the disc, while $\cos(i) = 0$ will imply an edge on view of the disc). \\
+	\item[cos\_inc]  $\cos(i)$, Cosine of the inclination of the observer with respect to the disc. This is measured from the z-axis, with the disc in the x-y plane (i.e $\cos(i) = 1$ would imply an observer located on the z-axis looking straight down onto the disc, while $\cos(i) = 0$ will imply an edge on view of the disc). \\
 		$\sbt$ {\it Units}: Dimensionless \\
 		$\sbt$ {\it Default}: 0.5 \\
 		$\sbt$ {\it Limits}: $0.09 \leq \cos(i) \leq 1$ (Exactly edge on will give you a disc that is not visible...) 
 	
-	\item[Par\,6:\,\,$\kTh$] Electron temperature for the hot Comptonisation region (i.e the X-ray corona). This sets the high-energy roll-over of hot Comptonisation component in the spectrum. \\
+	\item[kTe\_hot] $\kTh$, Electron temperature for the hot Comptonisation region (i.e the X-ray corona). This sets the high-energy roll-over of hot Comptonisation component in the spectrum. \\
 		$\sbt$ {\it Units}: keV \\
 		$\sbt$ {\it Default}: 100  \\
 		$\sbt$ {\it Limits}: $0 < \kTh$ (Apart from being wildly unrealistic, 0 electron temperature will lead to segmentation faults) 
 	
-	\item[Par\,7:\,\,$\kTw$] Electron temperature for the warm Componisation region \\
+	\item[kTe\_warm] $\kTw$, Electron temperature for the warm Componisation region \\
 		$\sbt$ {\it Units}: keV \\
 		$\sbt$ {\it Default}: 0.2 \\
 		$\sbt$ {\it Limits}: $0 < \kTw$ (Same reasoning as above!)
 	
-	\item[Par\,8:\,\,$\Gamma_{h}$] Spectral index for the hot Comptonisation component \\
+	\item[gamma\_hot] $\Gamma_{h}$, Spectral index for the hot Comptonisation component \\
 		$\sbt$ {\it Units}: Dimensionless \\
 		$\sbt$ {\it Default}: 1.7 \\
 		$\sbt$ {\it Limits}: $1.1 \leq \Gamma_{h}$ ({\sc nthcomp} will break for unrealistically steep spectra)
 	
-	\item[Par\,9:\,\,$\Gamma_{w}$] Spectral index for the warm Comptonisation component \\
+	\item[gamma\_warm] $\Gamma_{w}$, Spectral index for the warm Comptonisation component \\
 		$\sbt$ {\it Units}: Dimensionless \\
 		$\sbt$ {\it Default}: 2.7 \\
 		$\sbt$ {\it Limits}: $1.1 \leq \Gamma_{w}$ (Same reasoning as above)
 	
-	\item[Par\,10:\,\,$r_{h}$] Outer radius of the hot Comptonisation region (X-ray corona). If this is negative, then the code will use the innermost stable circular orbit, $\risco$ \\
+	\item[r\_hot] $r_{h}$, Outer radius of the hot Comptonisation region (X-ray corona). If this is negative, then the code will use the innermost stable circular orbit, $\risco$ \\
 		$\sbt$ {\it Units}: Dimensionless gravitational units, $r=R/R_{G}$ where $R_{G} = GM/c^{2}$ \\
 		$\sbt$ {\it Default}: 10
 	
-	\item[Par\,11:\,\,$r_{w}$] Outer radius of the warm Comptonisation region. If this is negative, then the code will use $\risco$. \\
+	\item[r\_warm] $r_{w}$, Outer radius of the warm Comptonisation region. If this is negative, then the code will use $\risco$. \\
 		$\sbt$ {\it Units}: $R_{G}$ \\
 		$\sbt$ {\it Default}: 10
 	
-	\item[Par\,12:\,\,$\log \rout$]: Outer disc radius. If this is negative, then the code will use the self-gravity radius from \textcolor{blue}{Insert Laor and Netzer ref here}. \\
+	\item[log\_rout]: $\log \rout$, Outer disc radius. If this is negative, then the code will use the self-gravity radius from \textcolor{blue}{Insert Laor and Netzer ref here}. \\
 		$\sbt$ {\it Units}: $R_{G}$ \\
 		$\sbt$ {\it Default}: -1 (i.e self-gravity)
 	
-	\item[Par\,13:\,\,$\fcol$] Colour-temperature correction. Note, that this is only applied to the standard disc region. If negative, then the code will use the relation given in \textcolor{blue}{insert Done et al 2012 reference here!!}. Otherwise it is treated as a constant correction across the entire standard disc region, such that the black-body emission from each annulus is given by $B_{\nu}(\fcol T(r))/\fcol^{4}$, where $T(r)$ is the temperature at that the annulus and $B_{\nu}$ denotes the black-body emission.\\
+	\item[fcol] $\fcol$, Colour-temperature correction. Note, that this is only applied to the standard disc region. If negative, then the code will use the relation given in \textcolor{blue}{insert Done et al 2012 reference here!!}. Otherwise it is treated as a constant correction across the entire standard disc region, such that the black-body emission from each annulus is given by $B_{\nu}(\fcol T(r))/\fcol^{4}$, where $T(r)$ is the temperature at that the annulus and $B_{\nu}$ denotes the black-body emission.\\
 		$\sbt$ {\it Units}: Dimensionless \\
 		$\sbt$ {\it Default}: 1 
 	
-	\item[Par\,14:\,\,$\hmax$] Maximal scale-height of the hot X-ray corona. This is a tuning parameter, and only affects the seed photons from the disc intercepted by the corona. If $\hmax > r_{h}$, then the code will automatically switch to $r_{h}$ as the maximal scale-height. \\
+	\item[h\_max] $\hmax$, Maximal scale-height of the hot X-ray corona. This is a tuning parameter, and only affects the seed photons from the disc intercepted by the corona. If $\hmax > r_{h}$, then the code will automatically switch to $r_{h}$ as the maximal scale-height. \\
 		$\sbt$ {\it Units}: $R_{G}$ \\
 		$\sbt$ {\it Default}: 10
 	
-	\item[Par\,15:\,\,$z$] Redshift of the source (i.e the black hole) as seen by the observer. As all calculations are initially done in the frame of the black hole, this correction is only applied when transforming to an observed spectrum. \\
+	\item[z] Redshift of the source (i.e the black hole) as seen by the observer. As all calculations are initially done in the frame of the black hole, this correction is only applied when transforming to an observed spectrum. \\
 		$\sbt$ {\it Units}: Dimensionless \\
 		$\sbt$ {\it Default}: 0
 		
@@ -132,7 +133,7 @@ Here we give an overview of the parameters that define the model. We include a b
 
 \subsection{Running through {\tt XSPEC}}
 
-If you wish to fit the model to observational data the easiest way is through {\sc xspec}, as this will take into account telescope effective areas and responses. To this extent, we have written a bespoke {\sc xspec} version of the model in {\sc fortran}. Before getting started though, there are a couple of steps to required by you in order to compile the model.
+If you wish to fit the model to observational data the easiest way is through {\sc xspec}, as this will take into account telescope effective areas and responses. To this extent, we have written a bespoke {\sc xspec} version of the model in {\sc fortran}. Before getting started though, there are a couple of steps to required by you in order to compile the model. Once the model has been compiled and loaded, you should refer to the {\sc xspec} documentation (\url{https://heasarc.gsfc.nasa.gov/xanadu/xspec/}) for instructions (e.g fitting models to data, initiating MCMC, etc.).
 
 
 \subsubsection{Installation and Compilation}
@@ -187,8 +188,6 @@ Don't want to have to type all that out yourself? No problemo, we've also includ
 This will {\bf append} the lmod line into your xspec.rc file (Note it will append for {\bf both} {\sc relagn} and {\sc relqso}). Only run this if you want {\sc xspec} to automatically load both models {\bf every} time you start a new session!!! For more info on modifying {\sc xspec}, take a look at their documentation (\url{https://heasarc.gsfc.nasa.gov/xanadu/xspec/manual/node33.html})
 
 
-\subsubsection{Fitting to data - Worked example}
-
 
 
 
@@ -196,14 +195,296 @@ This will {\bf append} the lmod line into your xspec.rc file (Note it will appen
 
 Occasionally you might not wish to run the model through {\sc xspec}. For example, you could be using the model as a part of one of your own codes/models, or you simply don't enjoy using {\sc xspec} for your data analysis. To this extent using the {\sc python} version makes more sense (incidentally this was the original version of the model. The {\sc frotran} version only came into existence when I wanted an easier way of making it work with {\sc xspec}...) 
 
-In {\sc python} the {\sc relagn} model exists as a class that you can initiate (by passing your desired input parameters), and then you choose what parts of the model you want to calculate/extract (e.g you can choose to skip the GR ray tracing calculations, or only calculate specific components of the SED, etc.). Below we start by detailing the {\sc relagn} class attributes and methods, after which we give a few examples on creating and extracting SEDs.
+In {\sc python} the {\sc relagn} model exists as a class that you can initiate (by passing your desired input parameters), and then you choose what parts of the model you want to calculate/extract (e.g you can choose to skip the GR ray tracing calculations, or only calculate specific components of the SED, etc.). Below we give details of the {\sc relagn} class attributes and methods. For examples on using the {sc python} version, see the Jupyter Notebooks in the /examples directory within the {\sc relagn} repository.
 
 
-\subsubsection{{\sc relagn} class description}
 
-\input{relagn_docstr.tex}
+\subsubsection{{\sc relagn} class attributes}
 
-\subsubsection{Inititating the model - Worked example}
+\begin{description}
+
+	\item[risco] Innermost stable circular orbit \\
+		$\sbt$ {\it Type}: float \\
+		$\sbt$ {\it Units}: $R_{G}$
+	
+	\item[r\_sg] Self-gravity radius \\
+		$\sbt$ {\it Type} float \\
+		$\sbt$ {\it Units}: $R_{G}$
+	
+	\item[eta] $\eta$, efficiency \\
+		$\sbt$ {\it Type}: float \\
+		$\sbt$ {\it Units}: Dimensionless 
+	
+	\item[Egrid] Energy grid used for calculations (this is in the frame of the black hole) \\
+		$\sbt$ {\it Type}: numpy array \\
+		$\sbt$ {\it Units}: keV 
+	
+	\item[nu\_grid] Frequency grid corresponding to Egrid \\
+		$\sbt$ {\it Type}: numpy array \\
+		$\sbt$ {\it Units}: Hz
+	
+	\item[wave\_grid] Wavelength grid corresponding to Egrid \\
+		$\sbt$ {\it Type}: numpy array \\
+		$\sbt$ {\it Units}: Angstrom, \AA
+	
+	\item[E\_obs] Energy grid converted to the observers frame (i.e redshift corrected) \\
+		$\sbt$ {\it Type}: numpy array \\
+		$\sbt$ {\it Units}: keV
+	
+	\item[nu\_obs] Frequency grid converted to the observers frame \\
+		$\sbt$ {\it Type}: numpy array \\
+		$\sbt$ {\it Units}: Hz
+	
+	\item[wave\_obs] Wavelength grid converted to the observers frame \\
+		$\sbt$ {\it Type}: numpy array \\
+		$\sbt$ {\it Units}: Angstrom, \AA
+	
+\end{description}
+
+
+\subsubsection{{\sc relagn} class methods}
+
+\noindent
+{\bf get\_totSED(\textit{rel=True})}
+\begin{adjustwidth}{1.5cm}{}
+
+	\noindent
+	Extracts (and calculates if necessary) the total SED (i.e disc component + warm component + hot component)
+	\\~\\
+	Parameters\\
+	-----------------\\
+	\indent rel : Bool, optional \\
+	\indent \indent Flag for whether to include full GR ray tracing \\
+	\indent \indent \indent $\sbt$ {\it True} : Full GR is used \\
+	\indent \indent \indent $\sbt$ {\it False} : GR ray tracing ignored (i.e SED in black hole frame) \\
+	\indent \indent The default is {\it True}
+	\\~\\
+	Returns \\
+	------------\\ 
+	\indent spec\_tot : array \\
+	\indent \indent Total output spectrum in whatever units are set \\
+	\indent \indent (see {\bf set\_units()} method for a description on unit options) \\
+	\indent \indent Generally though, this will be some flavour of spectral density, in luminosity or flux \\
+	\indent \indent  (e.g erg/s/Hz, or W/m$^{2}$/\AA,  or ph/s/cm$^{2}$/keV) \\
+	\indent \indent If you are using the default, then output is in erg/s/Hz
+	
+\end{adjustwidth}
+
+\vspace{1cm}
+
+\noindent
+{\bf get\_discComponent(\textit{rel=True})}
+\begin{adjustwidth}{1.5cm}{}
+
+	\noindent
+	Extracts (and calculates if necessary) the disc component of the SED (i.e ONLY contribution from the standard disc region)
+	\\~\\
+	Parameters\\
+	-----------------\\
+	\indent rel : Bool, optional \\
+	\indent \indent Flag for whether to include full GR ray tracing \\
+	\indent \indent \indent $\sbt$ {\it True} : Full GR is used \\
+	\indent \indent \indent $\sbt$ {\it False} : GR ray tracing ignored (i.e SED in black hole frame) \\
+	\indent \indent The default is {\it True}
+	\\~\\
+	Returns \\
+	------------\\ 
+	\indent spec\_disc : array \\
+	\indent \indent disc spectral components in whatever units are set \\
+	\indent \indent (see {\bf set\_units()} method for a description on unit options) \\
+	\indent \indent Generally though, this will be some flavour of spectral density, in luminosity or flux \\
+	\indent \indent  (e.g erg/s/Hz, or W/m$^{2}$/\AA,  or ph/s/cm$^{2}$/keV) \\
+	\indent \indent If you are using the default, then output is in erg/s/Hz
+
+\end{adjustwidth}
+
+\vspace{1cm}
+
+\noindent
+{\bf get\_WarmComponent(\textit{rel=True})}
+\begin{adjustwidth}{1.5cm}{}
+
+	\noindent
+	Extracts (and calculates if necessary) the warm Comptonised component of the SED (i.e ONLY contribution from the warm Comptonisation region)
+	\\~\\
+	Parameters\\
+	-----------------\\
+	\indent rel : Bool, optional \\
+	\indent \indent Flag for whether to include full GR ray tracing \\
+	\indent \indent \indent $\sbt$ {\it True} : Full GR is used \\
+	\indent \indent \indent $\sbt$ {\it False} : GR ray tracing ignored (i.e SED in black hole frame) \\
+	\indent \indent The default is {\it True}
+	\\~\\
+	Returns \\
+	------------\\ 
+	\indent spec\_warm : array \\
+	\indent \indent warm Compton spectral component in whatever units are set \\
+	\indent \indent (see {\bf set\_units()} method for a description on unit options) \\
+	\indent \indent Generally though, this will be some flavour of spectral density, in luminosity or flux \\
+	\indent \indent  (e.g erg/s/Hz, or W/m$^{2}$/\AA,  or ph/s/cm$^{2}$/keV) \\
+	\indent \indent If you are using the default, then output is in erg/s/Hz
+
+\end{adjustwidth}
+
+\vspace{1cm}
+
+\noindent
+{\bf get\_HotComponent(\textit{rel=True})}
+\begin{adjustwidth}{1.5cm}{}
+
+	\noindent
+	Extracts (and calculates if necessary) the hot Comptonised component of the SED (i.e ONLY contribution from the hot Comptonisation disc region)
+	\\~\\
+	Parameters\\
+	-----------------\\
+	\indent rel : Bool, optional \\
+	\indent \indent Flag for whether to include full GR ray tracing \\
+	\indent \indent \indent $\sbt$ {\it True} : Full GR is used \\
+	\indent \indent \indent $\sbt$ {\it False} : GR ray tracing ignored (i.e SED in black hole frame) \\
+	\indent \indent The default is {\it True}
+	\\~\\
+	Returns \\
+	------------\\ 
+	\indent spec\_hot : array \\
+	\indent \indent Hot Compton spectral component in whatever units are set \\
+	\indent \indent (see {\bf set\_units()} method for a description on unit options) \\
+	\indent \indent Generally though, this will be some flavour of spectral density, in luminosity or flux \\
+	\indent \indent  (e.g erg/s/Hz, or W/m$^{2}$/\AA,  or ph/s/cm$^{2}$/keV) \\
+	\indent \indent If you are using the default, then output is in erg/s/Hz
+
+\end{adjustwidth}
+
+\vspace{1cm}
+
+\noindent
+{\bf set\_units(\textit{new\_unit='cgs'})}
+\begin{adjustwidth}{1.5cm}{}
+	
+	\noindent
+	Changes the output units when using the get methods
+	\\~\\
+	Parameters\\
+	-----------------\\
+	\indent new\_unit : \{'cgs', 'cgs\_wave', 'SI', 'SI\_wave', 'counts'\} \\
+	\indent \indent String indicating what unit system to use. These will give the following outputs: \\
+	\indent \indent $\sbt$ {\bf cgs}: Spectra: {\it  ergs/s/Hz}, Luminosities: {\it ergs/s}, Accretion rate: {\it g/s}, Distances: {\it cm} \\
+	\indent \indent $\sbt$ {\bf cgs\_wave}: Spectra: {\it ergs/s/\AA}, otherwise same as {\bf cgs}. \\
+	\indent \indent $\sbt$ {\bf SI}: Spectra: {\it W/Hz}, Luminosities: {\it W}, Accretion rate: {\it kg/s}, Distances: {\it m} \\
+	\indent \indent $\sbt$ {\bf SI\_wave}: Spectra {\it W/\AA}, otherwise same as {\bf SI}. \\
+	\indent \indent $\sbt$ {\bf counts}: Spectra: {\it Photons/s/keV}, otherwise same as {\bf cgs} \\
+	\indent \indent The default is {\bf cgs}
+	\\~\\
+	Returns \\
+	------------\\ 
+	\indent None 
+	\\~\\
+	Note that is you have set the output to be in flux instead of luminosities, then {\bf cgs}, {\bf cgs\_wave}, and {\bf counts} will give spectra and luminosities in cm$^{-2}$, while {\bf SI} and {\bf SI\_wave} will give them in m$^{-2}$. E.g if flux and cgs set, the spectra will be given in {\it ergs/s/cm$^{2}$/Hz} \\
+	Also, you do not need to call this if you don't wish to change the output from the default units. (i.e if you're perfectly happy in cgs)
+	
+\end{adjustwidth}
+
+\vspace{1cm}
+
+\noindent
+{\bf set\_flux()}
+\begin{adjustwidth}{1.5cm}{}
+
+	\noindent
+	Sets all output to be in flux rather than luminosities. (e.g a spectrum in cgs units would be given in {\it ergs/s/cm$^{2}$/Hz}
+	\\~\\
+	Parameters\\
+	-----------------\\
+	\indent None
+	\\~\\
+	Returns \\
+	------------\\ 
+	\indent None 
+	
+
+\end{adjustwidth}
+
+\vspace{1cm}
+
+\noindent
+{\bf set\_lum()}
+\begin{adjustwidth}{1.5cm}{}
+	
+	\noindent
+	Sets all output to be in luminosoity (e.g a spectrum in cgs units would be given in {\it ergs/s/Hz}) \\
+	Note: This is the default output! So no need to call this {\bf unless} you have already set flux output previously in your code and you now wish to change back
+	\\~\\
+	Parameters\\
+	-----------------\\
+	\indent None
+	\\~\\
+	Returns \\
+	------------\\ 
+	\indent None 
+	
+\end{adjustwidth}
+
+\vspace{1cm}
+
+\noindent
+{\bf get\_Ledd()}
+\begin{adjustwidth}{1.5cm}{}
+
+	\noindent
+	Extracts the Eddington luminosity of the system in whatever units are set (e.g output in {\it ergs/s} or {\it W}). \\
+	Note, this is {\bf always} given as a luminosity. So the code will not care whether or not {\bf set\_flux()} has been called.
+	\\~\\
+	Parameters\\
+	-----------------\\
+	\indent None
+	\\~\\
+	Returns \\
+	------------\\ 
+	\indent Ledd : float \\
+	\indent \indent The systems Eddington luminosity
+
+\end{adjustwidth}
+
+\vspace{1cm}
+
+\noindent
+{\bf get\_Rg()}
+\begin{adjustwidth}{1.5cm}{}
+
+	\noindent
+	Extracts the length scale of a gravitational unit in whatever units are set (e.g output in {\it cm} or {\it m})
+	\\~\\
+	Parameters\\
+	-----------------\\
+	\indent None
+	\\~\\
+	Returns \\
+	------------\\ 
+	\indent R\_G : float \\
+	\indent \indent The size scale of a gravitational unit
+
+\end{adjustwidth}
+
+\vspace{1cm}
+
+\noindent
+{\bf get\_Mdot()}
+\begin{adjustwidth}{1.5cm}{}
+
+	\noindent
+	Extracts the {\bf physical} mass accretion rate of the system in whatever units are set (e.g output in {\it g/s} or {\it kg/s}) 
+	\\~\\
+	Parameters\\
+	-----------------\\
+	\indent None
+	\\~\\
+	Returns \\
+	------------\\ 
+	\indent Mdot : float \\
+	\indent \indent {\bf Physical} mass accretion rate of the system
+
+\end{adjustwidth}
+
+
 
 
 
@@ -217,13 +498,11 @@ In {\sc python} the {\sc relagn} model exists as a class that you can initiate (
 
 \subsubsection{Installation and Compilation}
 
-\subsubsection{Fitting to data - Worked example}
 
 
 
 \subsection{Running through {\tt PYTHON}}
 
-\subsubsection{Inititating the model - Worked example}
 
 \subsubsection{Class methods}
 
