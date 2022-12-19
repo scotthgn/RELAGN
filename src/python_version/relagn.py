@@ -230,8 +230,8 @@ class relagn:
     as_flux = False #This flags whether to return luminosity or flux
     
     def __init__(self,
-                 M=1e5,
-                 dist=1,
+                 M=1e8,
+                 dist=100,
                  log_mdot=-1,
                  a=0,
                  cos_inc=0.5,
@@ -1819,7 +1819,6 @@ class relqso(relagn):
         #physical conversion factors
         self.Mdot_edd = self.L_edd/(self.eta * c**2)
         self.Rg = (G * self.M)/(c**2)
-        self._calc_Dl()
         
         #Calculating disc regions
         self.dlog_r = 1/self.dr_dex
@@ -1835,7 +1834,7 @@ class relqso(relagn):
         self.kTe_h = 100 #keV
         self.kTe_w = 0.2 #keV
         self.gamma_w = 2.5
-        self.hmax = min(10.0, self.r_h)
+        self.hmax = min(100.0, self.r_h)
         self._set_gammah()
         
         
