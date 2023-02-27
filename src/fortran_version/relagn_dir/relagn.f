@@ -702,14 +702,14 @@ c      Function to calculate Novikov-Thorne temperature at radius r
 c      Calculates colour temperature correction following Done et al. 2012
 
        implicit none
-       double precision T, calc_fcol, kkev !T in K
+       double precision T, Tkev,  calc_fcol, kkev !T in K
 
        kkev = 1.16048d7          !K/keV
 
        if (T.gt.1.0d5) then
           !Here follow eqn 1 in Done et al 2012
-          T = T/kkev            !Converting to keV
-          calc_fcol = (72.0/T)**(1.0/9.0)
+          Tkev = T/kkev            !Converting to keV
+          calc_fcol = (72.0/Tkev)**(1.0/9.0)
        else if ((T.lt.1.0d5).and.(T.gt.3.0d4)) then
           !Now follows eqn 2 in Done et al 2012
           calc_fcol = (T/3.0d4)**(0.82)
