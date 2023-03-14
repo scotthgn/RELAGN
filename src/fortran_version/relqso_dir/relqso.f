@@ -565,6 +565,8 @@ c     Writing outpur parameters IF wanted
        write (*,*) '-----------------------------------------'
        write (*,*) 'Ldiss/Ledd = ',ltest/Ledd
        write (*,*) 'Lhot/Ledd = ',(Ldiss+Lseed)/Ledd
+       write (*,*) 'Ldiss = ',Ldiss,'erg/s'
+       write (*,*) 'Lseed = ',Lseed,'erg/s'
        write (*,*) 'Lhot=',Ldiss+Lseed,'erg/s'
        write (*,*) 'Lwarm=',Lwarm,'erg/s'
        write (*,*) 'Ldisc=',Ldisc,'erg/s'
