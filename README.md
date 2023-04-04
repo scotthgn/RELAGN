@@ -5,7 +5,7 @@ a fully relativistic treatment. If this code is useful to your work, then please
 This model is based off the physically motivated broad-band SED model AGNSED (Kubota &amp; Done 2018), however with the addition of a fully relativistic
 treatment. The emissivity of the accretion flow is calculated following the relativistic treatment of Novikov &amp; Thorne (1973) (This is also done in AGNSED),
 while the ray tracing from the point of emission to the observer is performed using the relativistic convolution code KYCONV (Dociak, Karas &amp; Yaqoob 2004.)
-For a detailed description of the model please see Hagen & Done (in prep.)
+For a detailed description of the model please see Hagen & Done (2023b, submitted)
 
 There are currently two version of the code: one in Python and another in Fortran. The Fortran version is written to be used with the spectral fitting
 software XSPEC. If you intend to use the model to analyse X-ray spectral data, then this will probably be the prefered version to use. The Python version,
@@ -123,7 +123,7 @@ Model Parameters
  
  </br>
  
- For more details, see Hagen & Done (in prep.)
+ For more details, see Hagen & Done (2023b, submitted)
  
 Examples
 --------
