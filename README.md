@@ -1,6 +1,6 @@
 # RELAGN
 Spectral model for the calculation of AGN SEDs, ranging from the Optical/UV (outer accretion disc) to the Hard X-ray (Innermost X-ray Corona), including
-a fully relativistic treatment. If this code is useful to your work, then please reference: **Hagen &amp; Done (in prep.)**
+a fully relativistic treatment. If this code is useful to your work, then please reference: **Hagen &amp; Done (2023b, submitted)**
 
 This model is based off the physically motivated broad-band SED model AGNSED (Kubota &amp; Done 2018), however with the addition of a fully relativistic
 treatment. The emissivity of the accretion flow is calculated following the relativistic treatment of Novikov &amp; Thorne (1973) (This is also done in AGNSED),
