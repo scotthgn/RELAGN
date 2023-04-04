@@ -27,3 +27,9 @@ relqso.o
 ####################
 __pycache__
 .ipynb_checkpoints
+
+
+##################################
+#Seemingly random nuesance files...
+###################################
+._*
