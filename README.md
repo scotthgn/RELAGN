@@ -125,5 +125,6 @@ Model Parameters
  
  For more details, see Hagen & Done (2023b, submitted)
  
-Examples
---------
+Citing RELAGN
+-------------
+If you use RELAGN in your work, please cite Hagen & Done (2023b, submitted). The paper is currently in peer review, so for now please cite the version on the arXive: (Insert link here once live!)
