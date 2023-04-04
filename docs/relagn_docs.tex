@@ -49,12 +49,12 @@
 
 We will start by describing the main model {\sc relagn}. Throughout we assume you have either downloaded or cloned the GitHub repository, and we will work on the assumption that you have not changed the directory structure within the repository since downloading it.
 
-This documentation is only meant as a guide on how to use the code. For a description of the model, please see the main paper (Hagen \& Done, in prep). If this code us useful in your work, please cite: \textcolor{blue}{Input bibtex for paper here!!}
+This documentation is only meant as a guide on how to use the code. For a description of the model, please see the main paper (Hagen \& Done 2023b, submitted). If this code us useful in your work, please cite: \textcolor{blue}{Input bibtex for paper here!!}
 
 
 \subsection{Input Parameters}
 
-Here we give an overview of the parameters that define the model. We include a brief description, the units, and the defualt values (i.e what the code will use if you do not pass this parameter). For some parameters we also include limits. These are {\bf not based off any physical argument} - but actual limits that will break the code if exceeded (for a variety of reasons). For an idea of sensible {\bf physical} limits, see \textcolor{blue}{Hagen \& Done, insert here} for a description of the physics that go into the model.
+Here we give an overview of the parameters that define the model. We include a brief description, the units, and the defualt values (i.e what the code will use if you do not pass this parameter). For some parameters we also include limits. These are {\bf not based off any physical argument} - but actual limits that will break the code if exceeded (for a variety of reasons). For an idea of sensible {\bf physical} limits, see Hagen \& Done (2023, submitted) for a description of the physics that go into the model.
 
 
 \begin{description}
@@ -72,7 +72,7 @@ Here we give an overview of the parameters that define the model. We include a b
 		$\sbt$ {\it Units}: Dimensionless \\
 		$\sbt$ {\it Default}: $-1$ \\
 	
-	\item[a] Black hole spin parameter. 0 Implies non-spinning, while 1 is maximally spinning with prograde rotation (i.e in the same direction as the accretion disc). Note that the code enforces an upper limit of 0.998, which is the theoretical maximum assuming the presence of a disc \textcolor{blue}{insert Thorne 1974 citation!} \\
+	\item[a] Black hole spin parameter. 0 Implies non-spinning, while 1 is maximally spinning with prograde rotation (i.e in the same direction as the accretion disc). Note that the code enforces an upper limit of 0.998, which is the theoretical maximum assuming the presence of a disc (Thorne 1974) \\
 		$\sbt$ {\it Units}: Dimensionless \\
 		$\sbt$ {\it Default}: $0$ \\
 		$\sbt$ {\it Limits} $0 \leq a \leq 0.998$ (Retrograde rotation not currently supported by the GR transfer functions we use)
@@ -110,11 +110,11 @@ Here we give an overview of the parameters that define the model. We include a b
 		$\sbt$ {\it Units}: $R_{G}$ \\
 		$\sbt$ {\it Default}: 20
 	
-	\item[log\_rout]: $\log \rout$, Outer disc radius. If this is negative, then the code will use the self-gravity radius from \textcolor{blue}{Insert Laor and Netzer ref here}. \\
+	\item[log\_rout]: $\log \rout$, Outer disc radius. If this is negative, then the code will use the self-gravity radius from Laor \& Netzer (1989). \\
 		$\sbt$ {\it Units}: $R_{G}$ \\
 		$\sbt$ {\it Default}: -1 (i.e self-gravity)
 	
-	\item[fcol] $\fcol$, Colour-temperature correction. Note, that this is only applied to the standard disc region. If negative, then the code will use the relation given in \textcolor{blue}{insert Done et al 2012 reference here!!}. Otherwise it is treated as a constant correction across the entire standard disc region, such that the black-body emission from each annulus is given by $B_{\nu}(\fcol T(r))/\fcol^{4}$, where $T(r)$ is the temperature at that the annulus and $B_{\nu}$ denotes the black-body emission.\\
+	\item[fcol] $\fcol$, Colour-temperature correction. Note, that this is only applied to the standard disc region. If negative, then the code will use the relation given in Done et al. (2012). Otherwise it is treated as a constant correction across the entire standard disc region, such that the black-body emission from each annulus is given by $B_{\nu}(\fcol T(r))/\fcol^{4}$, where $T(r)$ is the temperature at that the annulus and $B_{\nu}$ denotes the black-body emission.\\
 		$\sbt$ {\it Units}: Dimensionless \\
 		$\sbt$ {\it Default}: 1 
 	
@@ -490,7 +490,7 @@ In {\sc python} the {\sc relagn} model exists as a class that you can initiate (
 
 \section{{\tt RELQSO}}
 
-This is a simplified version of {\sc relagn} where some parameters are fixed, and others are calculated within the code. See \textcolor{blue}{Hagen \& Done (in prep.)} for a description of the internal calculations. Also see \textcolor{blue}{Kubota \& Done (2018)} for a detailed description of the original {\sc qsosed} model, which {\sc relqso} is based off.
+This is a simplified version of {\sc relagn} where some parameters are fixed, and others are calculated within the code. See Hagen \& Done (2023b, submitted) for a description of the internal calculations. Also see Kubota \& Done (2018) for a detailed description of the original {\sc qsosed} model, which {\sc relqso} is based off.
 
 \subsection{Input Parameters}
 
@@ -509,7 +509,7 @@ This is a simplified version of {\sc relagn} where some parameters are fixed, an
 		$\sbt$ {\it Units}: Dimensionless \\
 		$\sbt$ {\it Default}: $-1$ \\
 	
-	\item[a] Black hole spin parameter. 0 Implies non-spinning, while 1 is maximally spinning with prograde rotation (i.e in the same direction as the accretion disc). Note that the code enforces an upper limit of 0.998, which is the theoretical maximum assuming the presence of a disc \textcolor{blue}{insert Thorne 1974 citation!} \\
+	\item[a] Black hole spin parameter. 0 Implies non-spinning, while 1 is maximally spinning with prograde rotation (i.e in the same direction as the accretion disc). Note that the code enforces an upper limit of 0.998, which is the theoretical maximum assuming the presence of a disc (Thorne 1974) \\
 		$\sbt$ {\it Units}: Dimensionless \\
 		$\sbt$ {\it Default}: $0$ \\
 		$\sbt$ {\it Limits} $0 \leq a \leq 0.998$ (Retrograde rotation not currently supported by the GR transfer functions we use)
@@ -520,7 +520,7 @@ This is a simplified version of {\sc relagn} where some parameters are fixed, an
 		$\sbt$ {\it Limits}: $0.09 \leq \cos(i) \leq 1$ (Exactly edge on will give you a disc that is not visible...) 
 		
 	
-	\item[fcol] $\fcol$, Colour-temperature correction. Note, that this is only applied to the standard disc region. If negative, then the code will use the relation given in \textcolor{blue}{insert Done et al 2012 reference here!!}. Otherwise it is treated as a constant correction across the entire standard disc region, such that the black-body emission from each annulus is given by $B_{\nu}(\fcol T(r))/\fcol^{4}$, where $T(r)$ is the temperature at that the annulus and $B_{\nu}$ denotes the black-body emission.\\
+	\item[fcol] $\fcol$, Colour-temperature correction. Note, that this is only applied to the standard disc region. If negative, then the code will use the relation given in Done et al. (2012). Otherwise it is treated as a constant correction across the entire standard disc region, such that the black-body emission from each annulus is given by $B_{\nu}(\fcol T(r))/\fcol^{4}$, where $T(r)$ is the temperature at that the annulus and $B_{\nu}$ denotes the black-body emission.\\
 		$\sbt$ {\it Units}: Dimensionless \\
 		$\sbt$ {\it Default}: 1 
 	
