@@ -1,11 +1,11 @@
 # RELAGN
 Spectral model for the calculation of AGN SEDs, ranging from the Optical/UV (outer accretion disc) to the Hard X-ray (Innermost X-ray Corona), including
-a fully relativistic treatment. If this code is useful to your work, then please reference: **Hagen &amp; Done (2023b, submitted)**
+a fully relativistic treatment. If this code is useful to your work, then please reference: **Hagen &amp; Done (2023b, submitted)** (https://ui.adsabs.harvard.edu/abs/2023arXiv230401253H/abstract)
 
 This model is based off the physically motivated broad-band SED model AGNSED (Kubota &amp; Done 2018), however with the addition of a fully relativistic
 treatment. The emissivity of the accretion flow is calculated following the relativistic treatment of Novikov &amp; Thorne (1973) (This is also done in AGNSED),
 while the ray tracing from the point of emission to the observer is performed using the relativistic convolution code KYCONV (Dociak, Karas &amp; Yaqoob 2004.)
-For a detailed description of the model please see Hagen & Done (2023b, submitted) (https://ui.adsabs.harvard.edu/abs/2023arXiv230401253H/abstract)
+For a detailed description of the model please see Hagen & Done (2023b, submitted)
 
 There are currently two version of the code: one in Python and another in Fortran. The Fortran version is written to be used with the spectral fitting
 software XSPEC. If you intend to use the model to analyse X-ray spectral data, then this will probably be the prefered version to use. The Python version,
@@ -92,7 +92,24 @@ Model Parameters
  
  **Par 9. &ensp; $\Gamma\_{w}$** </br>
   &emsp; &emsp; &#9656; **Units:** Dimensionless </br>
-  &emsp; &emsp; &#9656; **Description:** Spectral index for the warm Comptonisation component
+  &emsp; &emsp; &#9656; **Description:** Spectral inde@ARTICLE{2023arXiv230401253H,
+       author = {{Hagen}, Scott and {Done}, Chris},
+        title = "{Estimating Black Hole Spin from AGN SED Fitting: The Impact of General-Relativistic Ray Tracing}",
+      journal = {arXiv e-prints},
+     keywords = {Astrophysics - High Energy Astrophysical Phenomena, Astrophysics - Astrophysics of Galaxies},
+         year = 2023,
+        month = apr,
+          eid = {arXiv:2304.01253},
+        pages = {arXiv:2304.01253},
+          doi = {10.48550/arXiv.2304.01253},
+archivePrefix = {arXiv},
+       eprint = {2304.01253},
+ primaryClass = {astro-ph.HE},
+       adsurl = {https://ui.adsabs.harvard.edu/abs/2023arXiv230401253H},
+      adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+}
+
+x for the warm Comptonisation component
  
  **Par 10. &ensp; $r_{h}$** </br>
   &emsp; &emsp; &#9656; **Units:** $R\_{G}$ ( $R\_{G} = GM/c\^{2}$ so technically dimensionless) </br>
