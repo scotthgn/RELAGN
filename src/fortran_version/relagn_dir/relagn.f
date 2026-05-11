@@ -15,6 +15,7 @@ c      Magdziarz 1996; Zycki, Done & Smith 1999)
       
       
        subroutine relagn(ear,ne,param,ifl,photar,photer)
+       use xsfortran
        implicit none
 
        integer npars
@@ -123,6 +124,7 @@ c-----------------------------------------------------------------------
 
 
        subroutine calc_relagn(es, nn, param, ifl, ph)
+       use xsfortran
 
 c      Function to calculate the SED. Calculates the spectral
 c      contribution from each region (disc, warm comp, hot comp)

@@ -17,6 +17,7 @@ c      Additionaly, this subroutine includes the option for relativistic
 c      effects to be taken into account, using KYCONV (Dovciak et al. 2004)
       
        subroutine relqso(ear,ne,param,ifl,photar,photer)
+       use xsfortran
        implicit none
 
        integer npars
@@ -117,7 +118,8 @@ c-----------------------------------------------------------------------
 
 
        subroutine calc_relqso(es, nn, param, ifl, ph)
-
+       use xsfortran
+       
 c      Function to calculate the SED. Calculates the spectral
 c      contribution from each region (warm comp, hot comp)
 c      Temperature found through the Novikov-Thorne equiations
