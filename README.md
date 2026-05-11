@@ -17,6 +17,8 @@ Both versions have the same input parameters, and are detailed below.
 It is also important to note, that both versions require a working installation of HEASOFT, since we use the XSPEC convolution model KYCONV to apply
 the relativistic effects. If you do not already have HEASOFT installed, it can be found here: https://heasarc.gsfc.nasa.gov/docs/software/heasoft/
 
+***Note regarding XSPEC V.>15***: From Xspec version 15.1 and onwards local models written in fortran require a call to `use xsfortran` at the top of the relevant subroutines. RELAGN has now been updated accordingly, so the code on the ***main*** branch contains this. ***IF*** you have a previous version of Xspec, you will want to use the code in the ***old_xspec*** branch, which retains the previous behaviour.
+
 Requirements
 ------------
 * Working installation of HEASOFT, since we use the XSPEC convolution model KYCONV to apply the relativistic effects this is required for both the
