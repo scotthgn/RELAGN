@@ -28,6 +28,7 @@ without the necessary compilers...)
 * Numpy (ONLY for Python version - Tested for v.1.21.5)
 * Scipy (ONLY for Python version - Tested for v.1.9.3)
 * Astropy (ONLY for Python version - Tested for v.5.1)
+* gcc, g++, and gfortran compilers (ONLY for CIAO Sherpa installation)
 
 Note: The Python version will ONLY run in Python 3! - We have been using v.3.9.12
 
@@ -51,6 +52,15 @@ in your `xspec.rc` file; located within your `~/.xspec` directory. If `xspec.rc`
 Currently the easiest way is to either clone this repository, or directly download the source code (i.e ALL the files within the `~/src/python_version`
 directory). Then add the source code file to your PYTHONPATH (or use sys.append() within your own scripts if you do not wish to directly edit the
 PYTHONPATH...). Turning this into a package you can pip install is on the to-do list!!!
+
+## Sherpa (Conda CIAO 4.18)
+The source code in `~/src/python_version` is not directly compatible with the CIAO conda environment. For those who still wish to incorporate these models into CIAO e.g., to use Sherpa en lieu of XSPEC, we recommend compiling the fortran version. Importing the files into XSPEC requires a few additional steps, however:
+
+1. In the **old_xspec** branch download the source code files `relagn.f` and `lmod_relagn.dat`, found within `~/src/fortran_version` into a directory of your choosing. The files in main are not compatible with older versions of XSPEC like 12.4 that CIAO 4.18 uses.
+2. In the same directory, run the following Sherpa command: `convert_xspec_user_model relagn lmod_relagn.dat` to compile the code. Note that the installation requires the following environmental variables to compilers for C and Fortran to be set:
+`export CC=$(which gcc)`, `export CXX=$(which g++)`, `export FC=$(which gfortran)`
+3. Begin any Python file with an import to `from relagn import XSUMrelagn`. You can then initialize the model like you would any other Sherpa model class e.g., `relagn = XSUMrelagn()`.  
+
 
 Model Parameters
 ----------------
