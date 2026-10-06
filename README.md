@@ -33,6 +33,9 @@ without the necessary compilers...)
 
 Note: The Python version will ONLY run in Python 3! - We have been using v.3.9.12
 
+Note regarding HEASOFT v.6.37 and above:
+  - Model table data no longer ships by default. If you are running this or a newer version you also need to install the KYN table data (contains the GR transfer functions). You can do this with the following command: `ftgetmodeldata kyconv latest`
+
 
 Installation
 -------------
